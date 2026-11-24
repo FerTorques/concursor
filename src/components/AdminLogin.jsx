@@ -25,8 +25,8 @@ export function AdminLogin({ onCancel, onLoginSuccess }) {
   };
 
   const fillDemoCredentials = () => {
-    setEmail('admin@chaco.gob.ar');
-    setPassword('concurso2026');
+    setEmail('admin@concursor.com');
+    setPassword('Concurso2026!');
   };
 
   return (
