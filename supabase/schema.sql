@@ -70,12 +70,15 @@ CREATE INDEX IF NOT EXISTS idx_cargos_updated_at ON public.cargos(updated_at DES
 
 -- 5. Trigger para actualizar automaticamente 'updated_at'
 CREATE OR REPLACE FUNCTION update_cargos_timestamp()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = public, pg_temp
+AS $$
 BEGIN
     NEW.updated_at = timezone('utc'::text, now());
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
 DROP TRIGGER IF EXISTS trg_cargos_timestamp ON public.cargos;
 CREATE TRIGGER trg_cargos_timestamp
@@ -88,11 +91,13 @@ ALTER TABLE public.historial_cambios ENABLE ROW LEVEL SECURITY;
 
 -- 7. Políticas de Seguridad (RLS)
 -- Lectura pública para la pizarra interactiva (Pizarra en vivo de solo lectura sin login)
+DROP POLICY IF EXISTS "Permitir lectura publica de cargos" ON public.cargos;
 CREATE POLICY "Permitir lectura publica de cargos"
     ON public.cargos FOR SELECT
     USING (true);
 
 -- Modificación solo para usuarios autenticados (Admin) o rol autorizado
+DROP POLICY IF EXISTS "Permitir modificacion a administradores autenticados" ON public.cargos;
 CREATE POLICY "Permitir modificacion a administradores autenticados"
     ON public.cargos FOR ALL
     TO authenticated
@@ -100,6 +105,7 @@ CREATE POLICY "Permitir modificacion a administradores autenticados"
     WITH CHECK (true);
 
 -- Historial accesible para lectura y registro
+DROP POLICY IF EXISTS "Permitir lectura y registro de historial a autenticados" ON public.historial_cambios;
 CREATE POLICY "Permitir lectura y registro de historial a autenticados"
     ON public.historial_cambios FOR ALL
     TO authenticated
@@ -108,4 +114,8 @@ CREATE POLICY "Permitir lectura y registro de historial a autenticados"
 
 -- 8. Habilitar Replicación en Tiempo Real (Realtime)
 -- Permite que los cambios se transmitan inmediatamente vía websockets a la Vista Pública y Admin
-ALTER PUBLICATION supabase_realtime ADD TABLE public.cargos;
+DO $$ BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.cargos;
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
