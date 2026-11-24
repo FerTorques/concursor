@@ -223,7 +223,7 @@ export function PublicBoard({ onNavigate }) {
               {[
                 { id: 'todos', label: 'Todos', icon: Layers },
                 { id: 'disponible', label: 'Disponibles', icon: CheckCircle2, color: 'text-emerald-400' },
-                { id: 'asignada', label: 'Asignadas (1 Reserva)', icon: Clock, color: 'text-amber-400' },
+                { id: 'asignada', label: 'Asignadas', icon: Clock, color: 'text-amber-400' },
                 { id: 'reservada', label: 'Completas / Reservadas', icon: UserCheck, color: 'text-rose-400' },
                 { id: 'no_habilitada', label: 'No Habilitadas', icon: Ban, color: 'text-slate-400' }
               ].map((btn) => {

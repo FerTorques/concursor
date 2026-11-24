@@ -16,7 +16,7 @@ export function StatCounters({ projectorMode = false }) {
     },
     {
       key: 'asignadas',
-      label: 'Asignadas (1 reserva)',
+      label: 'Asignadas',
       count: stats.asignadas,
       color: 'bg-amber-500/10 text-amber-300 border-amber-500/30',
       icon: Clock,

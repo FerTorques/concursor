@@ -42,12 +42,13 @@ export function CargoDetailModal({
   const handleSubmit = (e) => {
     e.preventDefault();
     if (onSave) {
+      const clearApplicants = estado === 'disponible';
       onSave(cargo.id, {
         estado,
-        titular_nombre: titularNombre,
-        titular_dni: titularDni,
-        reserva_nombre: reservaNombre,
-        reserva_dni: reservaDni,
+        titular_nombre: clearApplicants ? '' : titularNombre,
+        titular_dni: clearApplicants ? '' : titularDni,
+        reserva_nombre: clearApplicants ? '' : reservaNombre,
+        reserva_dni: clearApplicants ? '' : reservaDni,
         observaciones
       });
     }
