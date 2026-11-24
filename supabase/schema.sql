@@ -89,6 +89,12 @@ FOR EACH ROW EXECUTE FUNCTION update_cargos_timestamp();
 ALTER TABLE public.cargos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.historial_cambios ENABLE ROW LEVEL SECURITY;
 
+-- 6.1 Permisos de tabla para roles de Supabase (anon y authenticated)
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT SELECT ON public.cargos TO anon;
+GRANT ALL ON public.cargos TO authenticated;
+GRANT ALL ON public.historial_cambios TO authenticated;
+
 -- 7. Políticas de Seguridad (RLS)
 -- Lectura pública para la pizarra interactiva (Pizarra en vivo de solo lectura sin login)
 DROP POLICY IF EXISTS "Permitir lectura publica de cargos" ON public.cargos;
