@@ -47,7 +47,7 @@ export function CargoCard({
     disponible: {
       card: 'bg-slate-800/90 hover:bg-slate-800/100 border-emerald-500/40 text-slate-100 hover:border-emerald-400/80 shadow-emerald-950/20 shadow-md',
       badge: 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50',
-      badgeText: 'DISPONIBLE PARA ASIGNACIÓN',
+      badgeText: 'DISPONIBLE',
       icon: Sparkles,
       accent: 'border-l-4 border-l-emerald-500'
     },
