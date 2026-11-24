@@ -16,7 +16,9 @@ import {
   UserCheck, 
   Ban,
   Radio,
-  X
+  X,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 
 export function PublicBoard({ onNavigate }) {
@@ -25,6 +27,7 @@ export function PublicBoard({ onNavigate }) {
   // Estados de interfaz
   const [projectorMode, setProjectorMode] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [viewMode, setViewMode] = useState('table'); // 'table' | 'cards'
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEstado, setSelectedEstado] = useState('todos'); // 'todos' | 'disponible' | 'asignada' | 'reservada' | 'no_habilitada'
   const [selectedRegion, setSelectedRegion] = useState('todas');
@@ -194,7 +197,7 @@ export function PublicBoard({ onNavigate }) {
             </div>
 
             {/* Selector de Región Educativa */}
-            <div className="md:col-span-6">
+            <div className="md:col-span-4">
               <select
                 value={selectedRegion}
                 onChange={(e) => setSelectedRegion(e.target.value)}
@@ -211,6 +214,28 @@ export function PublicBoard({ onNavigate }) {
                     </option>
                   ))}
               </select>
+            </div>
+
+            {/* Selector de Vista: Tabla / Tarjetas */}
+            <div className="md:col-span-2 flex items-center justify-end gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+              <button
+                onClick={() => setViewMode('table')}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  viewMode === 'table' ? 'bg-sky-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <List className="w-3.5 h-3.5" />
+                Tabla
+              </button>
+              <button
+                onClick={() => setViewMode('cards')}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  viewMode === 'cards' ? 'bg-sky-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                Tarjetas
+              </button>
             </div>
           </div>
 
@@ -285,7 +310,7 @@ export function PublicBoard({ onNavigate }) {
               Ver todas las vacantes
             </button>
           </div>
-        ) : (
+        ) : viewMode === 'cards' ? (
           <div className={`grid gap-4 ${
             projectorMode
               ? 'grid-cols-1 lg:grid-cols-2 gap-5'
@@ -300,6 +325,86 @@ export function PublicBoard({ onNavigate }) {
                 onSelect={(c) => setSelectedCargo(c)}
               />
             ))}
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900 shadow-xl">
+            <table className={`w-full text-left ${projectorMode ? 'text-sm' : 'text-xs'}`}>
+              <thead className="bg-slate-800 text-slate-300 font-bold uppercase tracking-wider text-[11px] border-b border-slate-700">
+                <tr>
+                  <th className="p-3 w-16 text-center">N°</th>
+                  <th className="p-3">Establecimiento / Biblioteca</th>
+                  <th className="p-3">B.P.</th>
+                  <th className="p-3">Localidad</th>
+                  <th className="p-3">Región</th>
+                  <th className="p-3">Estado</th>
+                  <th className="p-3">1° Titular</th>
+                  <th className="p-3">2° Reserva</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800 font-medium">
+                {filteredCargos.map((cargo) => {
+                  const isRecent = cargo.id === lastUpdatedId || cargo.orden === lastUpdateNotice?.orden;
+                  return (
+                    <tr
+                      key={cargo.id || cargo.orden}
+                      onClick={() => setSelectedCargo(cargo)}
+                      className={`hover:bg-slate-800/50 transition-colors cursor-pointer ${
+                        isRecent ? 'bg-amber-500/10' : ''
+                      } ${cargo.estado === 'no_habilitada' ? 'opacity-60' : ''}`}
+                    >
+                      <td className="p-3 text-center font-mono font-black text-sky-400 whitespace-nowrap">
+                        N° {cargo.orden}
+                      </td>
+                      <td className="p-3">
+                        <div className="font-bold text-white">{cargo.nombre}</div>
+                        <div className="text-[11px] text-slate-400">
+                          Cat: {cargo.cat || '1ª'} | Mod: {cargo.mod || 'Pública'} | Zona: {cargo.zona || 'ZU 1'} | Jornada: {cargo.jornada || 'Simple'}
+                        </div>
+                        {cargo.etiqueta_normativa && (
+                          <span className="inline-block mt-0.5 text-[10px] text-amber-400 font-semibold">
+                            • {cargo.etiqueta_normativa}
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-3 font-mono text-sky-300 whitespace-nowrap">
+                        {cargo.bp || '—'}
+                      </td>
+                      <td className="p-3 font-semibold text-rose-300">
+                        {cargo.localidad}
+                      </td>
+                      <td className="p-3 text-slate-400 truncate max-w-[180px]">
+                        {cargo.region}
+                      </td>
+                      <td className="p-3 whitespace-nowrap">
+                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                          cargo.estado === 'disponible'
+                            ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50'
+                            : cargo.estado === 'asignada'
+                            ? 'bg-amber-500 text-slate-950 border-amber-400'
+                            : cargo.estado === 'reservada'
+                            ? 'bg-rose-600 text-white border-rose-500'
+                            : 'bg-slate-800 text-slate-400 border-slate-700'
+                        }`}>
+                          {cargo.estado === 'disponible'
+                            ? 'Disponible'
+                            : cargo.estado === 'asignada'
+                            ? 'Asignada'
+                            : cargo.estado === 'reservada'
+                            ? 'Reservada'
+                            : 'No Habilitada'}
+                        </span>
+                      </td>
+                      <td className="p-3 font-mono text-amber-200 truncate max-w-[160px]">
+                        {cargo.titular_nombre || '—'}
+                      </td>
+                      <td className="p-3 font-mono text-rose-200 truncate max-w-[160px]">
+                        {cargo.reserva_nombre || '—'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </main>
