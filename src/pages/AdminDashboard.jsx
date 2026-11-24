@@ -1,0 +1,589 @@
+import React, { useState, useMemo } from 'react';
+import { useCargos } from '../context/CargosContext';
+import { Navbar } from '../components/Navbar';
+import { StatCounters } from '../components/StatCounters';
+import { CargoCard } from '../components/CargoCard';
+import { CargoDetailModal } from '../components/CargoDetailModal';
+import { QuickActionModal } from '../components/QuickActionModal';
+import { PdfImportModal } from '../components/PdfImportModal';
+import { AdminLogin } from '../components/AdminLogin';
+import { playChime } from '../lib/sound';
+import { 
+  RotateCcw, 
+  Upload, 
+  Download, 
+  Search, 
+  Filter, 
+  LogOut, 
+  History, 
+  LayoutGrid, 
+  Table as TableIcon,
+  X
+} from 'lucide-react';
+
+export function AdminDashboard({ onNavigate }) {
+  const { 
+    cargos, 
+    loading, 
+    stats,
+    undoStack, 
+    lastUpdatedId,
+    sessionUser,
+    updateCargo, 
+    undoLastAction, 
+    batchSaveCargos,
+    resetToOfficial,
+    logoutAdmin 
+  } = useCargos();
+
+  // Estados de navegación e interfaz
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedEstado, setSelectedEstado] = useState('todos');
+  const [selectedRegion, setSelectedRegion] = useState('todas');
+  const [viewMode, setViewMode] = useState('cards');
+  const [soundEnabled, setSoundEnabled] = useState(true);
+
+  // Modales
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+  const [selectedCargoForDetail, setSelectedCargoForDetail] = useState(null);
+  const [quickActionState, setQuickActionState] = useState({
+    isOpen: false,
+    cargo: null,
+    actionType: 'asignar'
+  });
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [undoNotice, setUndoNotice] = useState(null);
+
+  // Lista de regiones únicas
+  const regionesDisponibles = useMemo(() => {
+    const setReg = new Set(cargos.map((c) => c.region).filter(Boolean));
+    return ['todas', ...Array.from(setReg).sort()];
+  }, [cargos]);
+
+  // Filtrado de vacantes
+  const filteredCargos = useMemo(() => {
+    return cargos.filter((c) => {
+      if (selectedEstado !== 'todos' && c.estado !== selectedEstado) return false;
+      if (selectedRegion !== 'todas' && c.region !== selectedRegion) return false;
+      if (searchTerm.trim() !== '') {
+        const query = searchTerm.toLowerCase().trim();
+        const matchOrden = c.orden.toString().includes(query);
+        const matchNombre = c.nombre.toLowerCase().includes(query);
+        const matchLocalidad = c.localidad.toLowerCase().includes(query);
+        const matchBp = c.bp ? c.bp.toString().toLowerCase().includes(query) : false;
+        const matchRegion = c.region.toLowerCase().includes(query);
+        const matchTitular = c.titular_nombre ? c.titular_nombre.toLowerCase().includes(query) : false;
+        return matchOrden || matchNombre || matchLocalidad || matchBp || matchRegion || matchTitular;
+      }
+      return true;
+    });
+  }, [cargos, selectedEstado, selectedRegion, searchTerm]);
+
+  // Si no hay sesión iniciada, mostrar pantalla de login (llamada después de los hooks)
+  if (!sessionUser) {
+    return (
+      <AdminLogin
+        onCancel={() => onNavigate('/')}
+        onLoginSuccess={() => {}}
+      />
+    );
+  }
+
+  // Manejar acción rápida de un clic
+  const handleQuickAction = (cargo, action) => {
+    if (action === 'asignar') {
+      setQuickActionState({
+        isOpen: true,
+        cargo,
+        actionType: 'asignar'
+      });
+    } else if (action === 'reservar') {
+      setQuickActionState({
+        isOpen: true,
+        cargo,
+        actionType: 'reservar'
+      });
+    } else if (action === 'liberar') {
+      updateCargo(cargo.id, {
+        estado: 'disponible',
+        titular_nombre: '',
+        titular_dni: '',
+        reserva_nombre: '',
+        reserva_dni: ''
+      });
+      if (soundEnabled) playChime('success');
+    } else if (action === 'habilitar') {
+      updateCargo(cargo.id, {
+        estado: 'disponible'
+      });
+      if (soundEnabled) playChime('success');
+    }
+  };
+
+  // Confirmar desde el modal de acción rápida
+  const handleConfirmQuickModal = ({ cargoId, actionType, nombre, dni }) => {
+    if (actionType === 'asignar') {
+      updateCargo(cargoId, {
+        estado: 'asignada',
+        titular_nombre: nombre || 'Aspirante Titular',
+        titular_dni: dni
+      });
+      if (soundEnabled) playChime('assign');
+    } else if (actionType === 'reservar') {
+      updateCargo(cargoId, {
+        estado: 'reservada',
+        reserva_nombre: nombre || 'Aspirante en Reserva',
+        reserva_dni: dni
+      });
+      if (soundEnabled) playChime('reserve');
+    }
+  };
+
+  // Deshacer último cambio con aviso visual
+  const handleUndo = async () => {
+    const undoneAction = await undoLastAction();
+    if (undoneAction) {
+      if (soundEnabled) playChime('success');
+      setUndoNotice(`Se deshizo: ${undoneAction.description}`);
+      setTimeout(() => setUndoNotice(null), 4000);
+    }
+  };
+
+  // Exportar el estado actual a un archivo CSV descargable
+  const handleExportCSV = () => {
+    const headers = ['Orden', 'Región', 'Establecimiento', 'B.P.', 'Cat.', 'Mod.', 'Zona', 'Jornada', 'Localidad', 'Origen', 'Estado', 'Titular Nombre', 'Titular DNI', 'Reserva Nombre', 'Reserva DNI', 'Normativa'];
+    const rows = cargos.map(c => [
+      c.orden,
+      `"${c.region || ''}"`,
+      `"${c.nombre || ''}"`,
+      c.bp || '',
+      c.cat || '',
+      c.mod || '',
+      c.zona || '',
+      c.jornada || '',
+      `"${c.localidad || ''}"`,
+      `"${c.origen || ''}"`,
+      c.estado,
+      `"${c.titular_nombre || ''}"`,
+      `"${c.titular_dni || ''}"`,
+      `"${c.reserva_nombre || ''}"`,
+      `"${c.reserva_dni || ''}"`,
+      `"${c.etiqueta_normativa || ''}"`
+    ]);
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Acta_Concurso_Cargos_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+      <Navbar
+        projectorMode={false}
+        onToggleProjector={() => {}}
+        soundEnabled={soundEnabled}
+        onToggleSound={() => setSoundEnabled(!soundEnabled)}
+        currentRoute="/admin"
+        onNavigate={onNavigate}
+      />
+
+      {undoNotice && (
+        <div className="bg-amber-500 text-slate-950 px-4 py-2 font-bold text-xs flex items-center justify-between shadow-lg">
+          <div className="flex items-center gap-2 max-w-7xl mx-auto w-full">
+            <RotateCcw className="w-4 h-4 animate-spin" />
+            <span>{undoNotice}</span>
+          </div>
+        </div>
+      )}
+
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-black bg-sky-500/20 text-sky-400 border border-sky-500/30">
+                MESA DE OPERACIONES EN VIVO
+              </span>
+              <span className="text-xs text-slate-400">
+                Sesión: <strong className="text-slate-200">{sessionUser?.email || 'Administrador'}</strong>
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
+              Gestor de Vacantes y Asignaciones en Tiempo Real
+            </h1>
+            <p className="text-xs text-slate-400 mt-1">
+              Operación directa con un clic • Auditoría y deshacer inmediato • Sincronización continua
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={handleUndo}
+              disabled={undoStack.length === 0}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black transition-all shadow-md ${
+                undoStack.length > 0
+                  ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-950/40 ring-2 ring-amber-400/50'
+                  : 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-50 border border-slate-700'
+              }`}
+              title="Corregir de inmediato el último clic accidental"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span>Deshacer ({undoStack.length})</span>
+            </button>
+
+            <button
+              onClick={() => setShowHistoryModal(true)}
+              className="p-2 rounded-xl text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
+              title="Ver historial de últimos movimientos"
+            >
+              <History className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={() => setIsPdfModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-sky-600 hover:bg-sky-500 text-white shadow-md shadow-sky-950/40 transition-colors"
+            >
+              <Upload className="w-4 h-4" />
+              <span>Importar PDF / Normas</span>
+            </button>
+
+            <button
+              onClick={handleExportCSV}
+              className="p-2 rounded-xl text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
+              title="Descargar Acta en CSV / Excel"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={logoutAdmin}
+              className="p-2 rounded-xl text-rose-400 hover:text-rose-300 bg-rose-950/30 hover:bg-rose-950/60 border border-rose-800/40 transition-colors"
+              title="Cerrar sesión"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        <StatCounters projectorMode={false} />
+
+        <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+            <div className="md:col-span-5 relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Buscar por orden, biblioteca, localidad, B.P. o titular..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            <div className="md:col-span-4">
+              <select
+                value={selectedRegion}
+                onChange={(e) => setSelectedRegion(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-sky-500"
+              >
+                <option value="todas">Todas las Regiones Educativas</option>
+                {regionesDisponibles.filter(r => r !== 'todas').map(reg => (
+                  <option key={reg} value={reg}>{reg}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="md:col-span-3 flex items-center justify-end gap-2">
+              <div className="flex items-center p-1 rounded-xl bg-slate-950 border border-slate-800">
+                <button
+                  onClick={() => setViewMode('cards')}
+                  className={`p-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors ${
+                    viewMode === 'cards' ? 'bg-sky-600 text-white' : 'text-slate-400 hover:text-white'
+                  }`}
+                  title="Vista de Tarjetas Grandes"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                  <span className="hidden sm:inline">Tarjetas</span>
+                </button>
+                <button
+                  onClick={() => setViewMode('table')}
+                  className={`p-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors ${
+                    viewMode === 'table' ? 'bg-sky-600 text-white' : 'text-slate-400 hover:text-white'
+                  }`}
+                  title="Vista de Tabla Rápida"
+                >
+                  <TableIcon className="w-4 h-4" />
+                  <span className="hidden sm:inline">Tabla</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 scrollbar-none">
+            <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider flex items-center gap-1 mr-1">
+              <Filter className="w-3.5 h-3.5" /> Estado:
+            </span>
+            {[
+              { id: 'todos', label: 'Todos' },
+              { id: 'disponible', label: `Disponibles (${stats.disponibles})` },
+              { id: 'asignada', label: `Asignadas (${stats.asignadas})` },
+              { id: 'reservada', label: `Reservadas (${stats.reservadas})` },
+              { id: 'no_habilitada', label: `Desafectadas (${stats.noHabilitadas})` }
+            ].map(btn => {
+              const active = selectedEstado === btn.id;
+              return (
+                <button
+                  key={btn.id}
+                  onClick={() => setSelectedEstado(btn.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border whitespace-nowrap ${
+                    active
+                      ? 'bg-sky-600 text-white border-sky-400 shadow-md'
+                      : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 border-slate-700/80'
+                  }`}
+                >
+                  {btn.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 text-slate-400 space-y-3">
+            <div className="w-10 h-10 border-4 border-sky-500 border-t-transparent rounded-full animate-spin" />
+            <p className="font-semibold text-sm">Cargando vacantes del concurso...</p>
+          </div>
+        ) : filteredCargos.length === 0 ? (
+          <div className="text-center py-16 bg-slate-900/50 rounded-2xl border border-slate-800 p-8 space-y-3">
+            <Search className="w-10 h-10 text-slate-600 mx-auto" />
+            <h3 className="text-lg font-bold text-white">No hay vacantes coincidentes</h3>
+            <p className="text-sm text-slate-400 max-w-md mx-auto">
+              Revisa los filtros aplicados o limpia la búsqueda.
+            </p>
+          </div>
+        ) : viewMode === 'cards' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredCargos.map((cargo) => (
+              <CargoCard
+                key={cargo.id || cargo.orden}
+                cargo={cargo}
+                adminMode={true}
+                isRecentlyUpdated={cargo.id === lastUpdatedId}
+                onSelect={(c) => setSelectedCargoForDetail(c)}
+                onQuickAction={handleQuickAction}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900 shadow-xl">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-800 text-slate-300 font-bold uppercase tracking-wider text-[11px] border-b border-slate-700">
+                <tr>
+                  <th className="p-3 w-16 text-center">N°</th>
+                  <th className="p-3">Establecimiento / Biblioteca</th>
+                  <th className="p-3">Localidad</th>
+                  <th className="p-3">Región</th>
+                  <th className="p-3">Estado Actual</th>
+                  <th className="p-3">1° Titular Asignado</th>
+                  <th className="p-3">2° Reserva</th>
+                  <th className="p-3 text-right">Acciones Rápidas</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800 font-medium">
+                {filteredCargos.map((cargo) => (
+                  <tr
+                    key={cargo.id || cargo.orden}
+                    onClick={() => setSelectedCargoForDetail(cargo)}
+                    className={`hover:bg-slate-800/50 transition-colors cursor-pointer ${
+                      cargo.id === lastUpdatedId ? 'bg-amber-500/10' : ''
+                    }`}
+                  >
+                    <td className="p-3 text-center font-mono font-black text-sky-400">
+                      N° {cargo.orden}
+                    </td>
+                    <td className="p-3">
+                      <div className="font-bold text-white line-clamp-1">{cargo.nombre}</div>
+                      {cargo.bp && <span className="text-[11px] text-sky-300 font-mono">B.P. {cargo.bp}</span>}
+                      {cargo.etiqueta_normativa && (
+                        <span className="ml-2 text-[10px] text-amber-400 font-semibold">
+                          • {cargo.etiqueta_normativa}
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-3 font-semibold text-rose-300">
+                      {cargo.localidad}
+                    </td>
+                    <td className="p-3 text-slate-400 truncate max-w-[150px]">
+                      {cargo.region}
+                    </td>
+                    <td className="p-3">
+                      <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                        cargo.estado === 'disponible'
+                          ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50'
+                          : cargo.estado === 'asignada'
+                          ? 'bg-amber-500 text-slate-950 border-amber-400'
+                          : cargo.estado === 'reservada'
+                          ? 'bg-rose-600 text-white border-rose-500'
+                          : 'bg-slate-800 text-slate-400 border-slate-700'
+                      }`}>
+                        {cargo.estado}
+                      </span>
+                    </td>
+                    <td className="p-3 font-mono text-amber-200 truncate max-w-[140px]">
+                      {cargo.titular_nombre || '—'}
+                    </td>
+                    <td className="p-3 font-mono text-rose-200 truncate max-w-[140px]">
+                      {cargo.reserva_nombre || '—'}
+                    </td>
+                    <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-1.5">
+                        {cargo.estado === 'disponible' && (
+                          <button
+                            onClick={() => handleQuickAction(cargo, 'asignar')}
+                            className="px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 transition-colors"
+                          >
+                            Asignar
+                          </button>
+                        )}
+                        {cargo.estado === 'asignada' && (
+                          <>
+                            <button
+                              onClick={() => handleQuickAction(cargo, 'reservar')}
+                              className="px-2 py-1 text-xs font-bold rounded-lg bg-rose-600 hover:bg-rose-500 text-white transition-colors"
+                            >
+                              Reserva
+                            </button>
+                            <button
+                              onClick={() => handleQuickAction(cargo, 'liberar')}
+                              className="px-2 py-1 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
+                            >
+                              Liberar
+                            </button>
+                          </>
+                        )}
+                        {cargo.estado === 'reservada' && (
+                          <button
+                            onClick={() => handleQuickAction(cargo, 'liberar')}
+                            className="px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-600/50 transition-colors"
+                          >
+                            Liberar
+                          </button>
+                        )}
+                        {cargo.estado === 'no_habilitada' && (
+                          <button
+                            onClick={() => handleQuickAction(cargo, 'habilitar')}
+                            className="px-2 py-1 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
+                          >
+                            Habilitar
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </main>
+
+      <QuickActionModal
+        isOpen={quickActionState.isOpen}
+        cargo={quickActionState.cargo}
+        actionType={quickActionState.actionType}
+        onClose={() => setQuickActionState({ isOpen: false, cargo: null, actionType: 'asignar' })}
+        onConfirm={handleConfirmQuickModal}
+      />
+
+      <CargoDetailModal
+        cargo={selectedCargoForDetail}
+        isOpen={Boolean(selectedCargoForDetail)}
+        onClose={() => setSelectedCargoForDetail(null)}
+        isAdmin={true}
+        onSave={(cargoId, updateData) => updateCargo(cargoId, updateData)}
+      />
+
+      <PdfImportModal
+        isOpen={isPdfModalOpen}
+        onClose={() => setIsPdfModalOpen(false)}
+        onSaveBatch={(batch) => batchSaveCargos(batch)}
+      />
+
+      {showHistoryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="relative w-full max-w-xl bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-6 max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+              <div className="flex items-center gap-2">
+                <History className="w-5 h-5 text-amber-400" />
+                <h3 className="font-extrabold text-white text-base">
+                  Historial de Movimientos del Acto ({undoStack.length})
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowHistoryModal(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-2">
+              {undoStack.length === 0 ? (
+                <p className="text-center py-8 text-xs text-slate-500">
+                  No hay movimientos registrados en esta sesión aún.
+                </p>
+              ) : (
+                undoStack.map((item) => (
+                  <div
+                    key={item.id}
+                    className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 text-xs flex items-center justify-between gap-3"
+                  >
+                    <div>
+                      <span className="font-bold text-white block">
+                        {item.description}
+                      </span>
+                      <span className="text-[11px] text-slate-400">
+                        {item.cargoNombre}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      {new Date(item.timestamp).toLocaleTimeString()}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="pt-4 border-t border-slate-800 flex justify-between items-center">
+              <button
+                onClick={resetToOfficial}
+                className="text-xs text-rose-400 hover:text-rose-300 font-bold"
+              >
+                Restablecer a Datos Oficiales Iniciales
+              </button>
+              <button
+                onClick={() => setShowHistoryModal(false)}
+                className="px-4 py-2 text-xs font-bold rounded-xl bg-slate-800 text-slate-200 hover:bg-slate-700"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
