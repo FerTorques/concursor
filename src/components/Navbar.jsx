@@ -39,7 +39,7 @@ export function Navbar({
           <img
             src="/logo-achabi.png"
             alt="Logo ACHABI - Asociación Chaqueña de Bibliotecarios"
-            className="w-11 h-11 rounded-full object-cover shadow-lg shadow-sky-600/30 flex-shrink-0 bg-white ring-2 ring-sky-400/40"
+            className="w-16 h-16 rounded-full object-cover shadow-lg shadow-sky-600/30 flex-shrink-0 bg-white ring-2 ring-sky-400/40"
           />
           <div className="min-w-0">
             <span className="font-extrabold tracking-tight text-white text-sm sm:text-base lg:text-lg block truncate">
