@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useCargos } from '../context/CargosContext';
-import { Lock, Mail, Key, ShieldCheck, ArrowLeft, AlertCircle, Sparkles } from 'lucide-react';
+import { Lock, Mail, Key, ShieldCheck, ArrowLeft, AlertCircle } from 'lucide-react';
 
 export function AdminLogin({ onCancel, onLoginSuccess }) {
   const { loginAdmin, usingSupabase } = useCargos();
@@ -24,10 +24,7 @@ export function AdminLogin({ onCancel, onLoginSuccess }) {
     }
   };
 
-  const fillDemoCredentials = () => {
-    setEmail('admin@concursor.com');
-    setPassword('Concursos2026!');
-  };
+  const fillDemoCredentials = () => {}; // sin uso
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
@@ -118,18 +115,6 @@ export function AdminLogin({ onCancel, onLoginSuccess }) {
               )}
             </button>
           </form>
-
-          {/* Atajo rápido de acceso en modo local / demo */}
-          <div className="mt-6 pt-5 border-t border-slate-800 text-center">
-            <button
-              type="button"
-              onClick={fillDemoCredentials}
-              className="text-xs text-sky-400 hover:text-sky-300 flex items-center justify-center gap-1.5 mx-auto font-medium"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              Cargar credenciales de prueba ({usingSupabase ? 'Supabase Auth' : 'Demo Local'})
-            </button>
-          </div>
         </div>
       </div>
     </div>
