@@ -54,7 +54,7 @@ export function CargoCard({
     asignada: {
       card: 'bg-amber-950/40 hover:bg-amber-950/60 border-amber-500/70 text-amber-50 shadow-amber-950/30 shadow-lg ring-1 ring-amber-500/30',
       badge: 'bg-amber-500 text-slate-950 font-black border-amber-400 animate-pulse-fast',
-      badgeText: 'ASIGNADA — Disponible para 1 reserva',
+      badgeText: 'ADJUDICADA — Disponible para 1 reserva',
       icon: Clock,
       accent: 'border-l-4 border-l-amber-400'
     },
@@ -169,7 +169,7 @@ export function CargoCard({
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 min-w-0">
               <User className="w-4 h-4 text-amber-400 flex-shrink-0" />
-              <span className="text-xs font-bold uppercase tracking-wider text-amber-300">1° Titular:</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-300">Titular:</span>
               <span className={`font-mono font-bold truncate ${projectorMode ? 'text-lg text-white' : 'text-sm text-slate-100'}`}>
                 {titular_nombre || 'Asignado (Sin nombre)'}
               </span>
@@ -185,7 +185,7 @@ export function CargoCard({
             <div className="flex items-center justify-between gap-2 border-t border-rose-800/40 pt-1.5">
               <div className="flex items-center gap-1.5 min-w-0">
                 <UserCheck className="w-4 h-4 text-rose-400 flex-shrink-0" />
-                <span className="text-xs font-bold uppercase tracking-wider text-rose-300">2° Reserva:</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-rose-300">Reserva:</span>
                 <span className={`font-mono font-bold truncate ${projectorMode ? 'text-lg text-white' : 'text-sm text-slate-100'}`}>
                   {reserva_nombre || 'En reserva'}
                 </span>
@@ -209,7 +209,7 @@ export function CargoCard({
                 onClick={() => onQuickAction && onQuickAction(cargo, 'asignar')}
                 className="px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 transition-colors shadow-sm"
               >
-                1° Asignar Titular
+                Asignar Titular
               </button>
             )}
             {estado === 'asignada' && (
@@ -218,7 +218,7 @@ export function CargoCard({
                   onClick={() => onQuickAction && onQuickAction(cargo, 'reservar')}
                   className="px-2.5 py-1 text-xs font-bold rounded-lg bg-rose-600 hover:bg-rose-500 text-white transition-colors shadow-sm"
                 >
-                  2° Tomar Reserva
+                  Tomar Reserva
                 </button>
                 <button
                   onClick={() => onQuickAction && onQuickAction(cargo, 'liberar')}

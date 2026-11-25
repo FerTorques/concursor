@@ -248,7 +248,7 @@ export function PublicBoard({ onNavigate }) {
               {[
                 { id: 'todos', label: 'Todos', icon: Layers },
                 { id: 'disponible', label: 'Disponibles', icon: CheckCircle2, color: 'text-emerald-400' },
-                { id: 'asignada', label: 'Asignadas', icon: Clock, color: 'text-amber-400' },
+                { id: 'asignada', label: 'Adjudicadas', icon: Clock, color: 'text-amber-400' },
                 { id: 'reservada', label: 'Completas / Reservadas', icon: UserCheck, color: 'text-rose-400' },
                 { id: 'no_habilitada', label: 'No Habilitadas', icon: Ban, color: 'text-slate-400' }
               ].map((btn) => {
@@ -337,8 +337,8 @@ export function PublicBoard({ onNavigate }) {
                   <th className="p-3">Localidad</th>
                   <th className="p-3">Región</th>
                   <th className="p-3">Estado</th>
-                  <th className="p-3">1° Titular</th>
-                  <th className="p-3">2° Reserva</th>
+                  <th className="p-3">Titular</th>
+                  <th className="p-3">Reserva</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800 font-medium">
@@ -388,7 +388,7 @@ export function PublicBoard({ onNavigate }) {
                           {cargo.estado === 'disponible'
                             ? 'Disponible'
                             : cargo.estado === 'asignada'
-                            ? 'Asignada'
+                            ? 'Adjudicada'
                             : cargo.estado === 'reservada'
                             ? 'Reservada'
                             : 'No Habilitada'}

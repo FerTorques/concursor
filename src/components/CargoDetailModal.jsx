@@ -162,7 +162,7 @@ export function CargoDetailModal({
                   {cargo.estado === 'asignada' && <Clock className="w-4 h-4" />}
                   {cargo.estado === 'reservada' && <UserCheck className="w-4 h-4" />}
                   {cargo.estado === 'no_habilitada' && <Ban className="w-4 h-4" />}
-                  {cargo.estado}
+                  {cargo.estado === 'asignada' ? 'Adjudicada' : cargo.estado}
                 </span>
               </div>
 
@@ -170,7 +170,7 @@ export function CargoDetailModal({
                 <div className="p-4 rounded-xl border bg-amber-950/20 border-amber-800/40 space-y-3">
                   <div className="flex items-center gap-2 text-amber-300">
                     <User className="w-4 h-4" />
-                    <span className="text-xs font-bold uppercase tracking-wider">1° Aspirante (Titular Asignado):</span>
+                    <span className="text-xs font-bold uppercase tracking-wider">Aspirante (Titular Adjudicado):</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
@@ -191,7 +191,7 @@ export function CargoDetailModal({
                 <div className="p-4 rounded-xl border bg-rose-950/20 border-rose-800/40 space-y-3">
                   <div className="flex items-center gap-2 text-rose-300">
                     <UserCheck className="w-4 h-4" />
-                    <span className="text-xs font-bold uppercase tracking-wider">2° Aspirante (Reserva):</span>
+                    <span className="text-xs font-bold uppercase tracking-wider">Aspirante (Reserva):</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
@@ -238,7 +238,7 @@ export function CargoDetailModal({
                         : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
                     }`}
                   >
-                    Asignada (1° Asp.)
+                    Adjudicada
                   </button>
 
                   <button

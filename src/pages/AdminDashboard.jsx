@@ -339,7 +339,7 @@ export function AdminDashboard({ onNavigate }) {
             {[
               { id: 'todos', label: 'Todos' },
               { id: 'disponible', label: `Disponibles (${stats.disponibles})` },
-              { id: 'asignada', label: `Asignadas (${stats.asignadas})` },
+              { id: 'asignada', label: `Adjudicadas (${stats.asignadas})` },
               { id: 'reservada', label: `Reservadas (${stats.reservadas})` },
               { id: 'no_habilitada', label: `Desafectadas (${stats.noHabilitadas})` }
             ].map(btn => {
@@ -397,8 +397,8 @@ export function AdminDashboard({ onNavigate }) {
                   <th className="p-3">Localidad</th>
                   <th className="p-3">Región</th>
                   <th className="p-3">Estado Actual</th>
-                  <th className="p-3">1° Titular Asignado</th>
-                  <th className="p-3">2° Reserva</th>
+                  <th className="p-3">Titular Adjudicado</th>
+                  <th className="p-3">Reserva</th>
                   <th className="p-3 text-right">Acciones Rápidas</th>
                 </tr>
               </thead>
@@ -439,7 +439,7 @@ export function AdminDashboard({ onNavigate }) {
                           ? 'bg-rose-600 text-white border-rose-500'
                           : 'bg-slate-800 text-slate-400 border-slate-700'
                       }`}>
-                        {cargo.estado}
+                        {cargo.estado === 'asignada' ? 'Adjudicada' : cargo.estado}
                       </span>
                     </td>
                     <td className="p-3 font-mono text-amber-200 truncate max-w-[140px]">
