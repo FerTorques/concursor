@@ -43,7 +43,7 @@ export function CargoCard({
     no_habilitada: {
       card: 'bg-slate-900/60 border-slate-700/60 opacity-60 text-slate-400 grayscale cursor-not-allowed',
       badge: 'bg-slate-800 text-slate-400 border-slate-700',
-      badgeText: etiqueta_normativa || 'NO HABILITADA',
+      badgeText: etiqueta_normativa?.toLowerCase().includes('desafectada') ? 'DESAFECTADA' : 'NO HABILITADA',
       icon: Ban,
       accent: 'border-l-4 border-l-slate-600'
     },
