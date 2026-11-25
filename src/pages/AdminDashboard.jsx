@@ -239,7 +239,7 @@ export function AdminDashboard({ onNavigate }) {
               Gestor de Vacantes y Asignaciones en Tiempo Real
             </h1>
             <p className="text-xs text-slate-400 mt-1">
-              Concurso N° 55 (Traslado Definitivo) y Concurso N° 47 (Ingreso a la Docencia) • Ley 647-E Art. 266
+              Concurso N° 55 (Traslado Definitivo) y Concurso N° 47 (Ingreso a la Docencia) • Ley 647-E
             </p>
           </div>
 
@@ -421,7 +421,7 @@ export function AdminDashboard({ onNavigate }) {
               <div className="p-3 rounded-xl bg-sky-950/40 border border-sky-800/60 flex items-center gap-2.5 text-xs text-sky-200">
                 <Info className="w-5 h-5 text-sky-400 flex-shrink-0" />
                 <span>
-                  <strong>Modo Traslado Definitivo activo:</strong> Se puede cubrir hasta el 50% de la totalidad de vacantes ({stats.cupoRestanteTraslado} disponibles en este cupo). En este concurso los cargos no admiten reservas (Ley 647-E Art. 266).
+                  <strong>Modo Traslado Definitivo activo:</strong> Se puede cubrir hasta el 50% de la totalidad de vacantes ({stats.cupoRestanteTraslado} disponibles en este cupo). En este concurso los cargos no admiten reservas (Ley 647-E).
                 </span>
               </div>
             )

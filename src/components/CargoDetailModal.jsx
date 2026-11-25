@@ -401,7 +401,7 @@ export function CargoDetailModal({
                 <div className="p-3.5 rounded-xl border border-sky-800/40 bg-sky-950/20 text-xs text-sky-300 flex items-center gap-2">
                   <Ban className="w-4 h-4 text-sky-400 flex-shrink-0" />
                   <span>
-                    <strong>Sin Reserva:</strong> Los cargos adjudicados en <em>Traslado Definitivo</em> están excluidos de reservas de aspirantes (Ley 647-E Art. 266).
+                    <strong>Sin Reserva:</strong> Los cargos adjudicados en <em>Traslado Definitivo</em> están excluidos de reservas de aspirantes (Ley 647-E).
                   </span>
                 </div>
               ) : (

@@ -150,31 +150,35 @@ export function PublicBoard({ onNavigate }) {
             }`}>
               Concurso de Traslados y Reincorporaciones N° 55 e Ingreso N° 47
             </h1>
-            <div className="mt-2.5 flex flex-wrap items-center gap-2">
+            <div className="mt-3">
               {activeConcurso === 'traslado' ? (
-                <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl border bg-sky-500/15 border-sky-400/50 text-sky-200 shadow-sm ${
-                  projectorMode ? 'text-base font-extrabold' : 'text-xs sm:text-sm font-bold'
+                <div className={`inline-flex items-center gap-3 px-4 py-2.5 rounded-2xl border-2 bg-gradient-to-r from-sky-600/30 via-sky-500/20 to-cyan-500/20 border-sky-400 text-white shadow-lg shadow-sky-900/40 ${
+                  projectorMode ? 'text-lg sm:text-xl font-extrabold px-5 py-3' : 'text-sm sm:text-base font-extrabold'
                 }`}>
-                  <ArrowRightLeft className="w-4 h-4 text-sky-400 flex-shrink-0" />
+                  <span className="p-1.5 rounded-xl bg-sky-400 text-slate-950 flex-shrink-0 shadow-sm">
+                    <ArrowRightLeft className={projectorMode ? 'w-5 h-5' : 'w-4 h-4'} />
+                  </span>
                   <span>
-                    <span className="text-sky-400 font-black uppercase tracking-wider mr-1.5">CONCURSO ACTIVO:</span>
+                    <span className="text-sky-300 font-black uppercase tracking-wider mr-2">CONCURSO ACTIVO:</span>
                     1° Concurso de Traslado Definitivo (Sin reservas)
                   </span>
                 </div>
               ) : (
-                <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl border bg-purple-500/15 border-purple-400/50 text-purple-200 shadow-sm ${
-                  projectorMode ? 'text-base font-extrabold' : 'text-xs sm:text-sm font-bold'
+                <div className={`inline-flex items-center gap-3 px-4 py-2.5 rounded-2xl border-2 bg-gradient-to-r from-purple-600/30 via-purple-500/20 to-fuchsia-500/20 border-purple-400 text-white shadow-lg shadow-purple-900/40 ${
+                  projectorMode ? 'text-lg sm:text-xl font-extrabold px-5 py-3' : 'text-sm sm:text-base font-extrabold'
                 }`}>
-                  <GraduationCap className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                  <span className="p-1.5 rounded-xl bg-purple-400 text-slate-950 flex-shrink-0 shadow-sm">
+                    <GraduationCap className={projectorMode ? 'w-5 h-5' : 'w-4 h-4'} />
+                  </span>
                   <span>
-                    <span className="text-purple-400 font-black uppercase tracking-wider mr-1.5">CONCURSO ACTIVO:</span>
+                    <span className="text-purple-300 font-black uppercase tracking-wider mr-2">CONCURSO ACTIVO:</span>
                     2° Concurso de Ingreso a la Docencia (Con reservas)
                   </span>
                 </div>
               )}
             </div>
-            <p className="text-sm text-slate-400 mt-2">
-              Cargos Bibliotecarios • Ley 647-E Art. 266 • Junta de Clasificación de Nivel Primario y Modalidades
+            <p className="text-sm text-slate-400 mt-2.5">
+              Cargos Bibliotecarios • Ley 647-E • Junta de Clasificación de Bibliotecas
             </p>
           </div>
 

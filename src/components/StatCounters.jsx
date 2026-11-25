@@ -1,6 +1,6 @@
 import React from 'react';
 import { useCargos } from '../context/CargosContext';
-import { CheckCircle2, Ban, ArrowRightLeft, GraduationCap } from 'lucide-react';
+import { CheckCircle2, ArrowRightLeft, GraduationCap } from 'lucide-react';
 
 export function StatCounters({ projectorMode = false }) {
   const { stats } = useCargos();
@@ -31,14 +31,6 @@ export function StatCounters({ projectorMode = false }) {
       color: 'bg-purple-500/10 text-purple-300 border-purple-500/30',
       icon: GraduationCap,
       badgeText: `${stats.reservadasIngreso} con reserva de vacante`
-    },
-    {
-      key: 'noHabilitadas',
-      label: 'No Habilitadas',
-      count: stats.noHabilitadas,
-      color: 'bg-slate-500/10 text-slate-400 border-slate-600/30',
-      icon: Ban,
-      badgeText: 'Desafectadas RES-2026-4798'
     }
   ];
 
@@ -48,7 +40,7 @@ export function StatCounters({ projectorMode = false }) {
 
   return (
     <div className="space-y-2.5">
-      <div className={`grid grid-cols-2 md:grid-cols-4 gap-3 ${projectorMode ? 'text-lg' : 'text-sm'}`}>
+      <div className={`grid grid-cols-1 sm:grid-cols-3 gap-3 ${projectorMode ? 'text-lg' : 'text-sm'}`}>
         {items.map((item) => {
           const Icon = item.icon;
           return (

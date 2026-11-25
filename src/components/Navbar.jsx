@@ -46,7 +46,7 @@ export function Navbar({
                 Concurso Bibliotecario N° 55 y N° 47
               </span>
               <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-sky-950 text-sky-400 border border-sky-800 uppercase tracking-wider">
-                Ley 647-E Art. 266
+                Ley 647-E
               </span>
             </div>
             <p className="text-xs text-slate-400 truncate">
