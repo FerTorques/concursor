@@ -48,16 +48,28 @@ export function CargoDetailModal({
   const handleSubmit = (e) => {
     e.preventDefault();
     if (onSave) {
-      const clearApplicants = estado === 'disponible';
+      let finalEstado = estado;
+      const hasTitular = titularNombre.trim() !== '' || titularDni.trim() !== '';
+      const hasReserva = (reservaNombre.trim() !== '' || reservaDni.trim() !== '') && concursoAsignacion !== 'traslado';
+
+      if (finalEstado === 'disponible' && (hasTitular || hasReserva)) {
+        finalEstado = hasReserva ? 'reservada' : 'asignada';
+      } else if (finalEstado === 'asignada' && hasReserva) {
+        finalEstado = 'reservada';
+      }
+
+      const clearApplicants = finalEstado === 'disponible';
       const isTraslado = concursoAsignacion === 'traslado';
       onSave(cargo.id, {
-        estado,
+        estado: finalEstado,
         concurso_asignacion: clearApplicants ? null : concursoAsignacion,
-        titular_nombre: clearApplicants ? '' : titularNombre,
-        titular_dni: clearApplicants ? '' : titularDni,
-        reserva_nombre: (clearApplicants || isTraslado) ? '' : reservaNombre,
-        reserva_dni: (clearApplicants || isTraslado) ? '' : reservaDni,
-        observaciones
+        titular_nombre: clearApplicants
+          ? ''
+          : (titularNombre.trim() || (finalEstado !== 'no_habilitada' ? 'Aspirante Titular' : '')),
+        titular_dni: clearApplicants ? '' : titularDni.trim(),
+        reserva_nombre: (clearApplicants || isTraslado) ? '' : reservaNombre.trim(),
+        reserva_dni: (clearApplicants || isTraslado) ? '' : reservaDni.trim(),
+        observaciones: observaciones.trim()
       });
     }
     onClose();
@@ -280,7 +292,13 @@ export function CargoDetailModal({
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <button
                     type="button"
-                    onClick={() => setEstado('disponible')}
+                    onClick={() => {
+                      setEstado('disponible');
+                      setTitularNombre('');
+                      setTitularDni('');
+                      setReservaNombre('');
+                      setReservaDni('');
+                    }}
                     className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
                       estado === 'disponible'
                         ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-md ring-2 ring-emerald-400/50'
@@ -349,7 +367,13 @@ export function CargoDetailModal({
                       type="text"
                       placeholder="Ej. Gómez, María Laura"
                       value={titularNombre}
-                      onChange={(e) => setTitularNombre(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setTitularNombre(val);
+                        if (val.trim() !== '' && estado === 'disponible') {
+                          setEstado('asignada');
+                        }
+                      }}
                       className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
                     />
                   </div>
@@ -359,7 +383,13 @@ export function CargoDetailModal({
                       type="text"
                       placeholder="Ej. 28.450.912"
                       value={titularDni}
-                      onChange={(e) => setTitularDni(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setTitularDni(val);
+                        if (val.trim() !== '' && estado === 'disponible') {
+                          setEstado('asignada');
+                        }
+                      }}
                       className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
                     />
                   </div>
@@ -386,7 +416,13 @@ export function CargoDetailModal({
                         type="text"
                         placeholder="Ej. Benítez, Clara Inés"
                         value={reservaNombre}
-                        onChange={(e) => setReservaNombre(e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setReservaNombre(val);
+                          if (val.trim() !== '' && (estado === 'disponible' || estado === 'asignada')) {
+                            setEstado('reservada');
+                          }
+                        }}
                         className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500"
                       />
                     </div>
@@ -396,7 +432,13 @@ export function CargoDetailModal({
                         type="text"
                         placeholder="Ej. 33.204.887"
                         value={reservaDni}
-                        onChange={(e) => setReservaDni(e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setReservaDni(val);
+                          if (val.trim() !== '' && (estado === 'disponible' || estado === 'asignada')) {
+                            setEstado('reservada');
+                          }
+                        }}
                         className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500"
                       />
                     </div>

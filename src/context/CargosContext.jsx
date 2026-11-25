@@ -94,7 +94,7 @@ export function CargosProvider({ children }) {
     }
   });
 
-  const setActiveConcurso = useCallback((nuevoConcurso) => {
+  const setActiveConcurso = useCallback(async (nuevoConcurso) => {
     if (nuevoConcurso !== 'traslado' && nuevoConcurso !== 'ingreso') return;
     setActiveConcursoState(nuevoConcurso);
     try {
@@ -108,7 +108,20 @@ export function CargosProvider({ children }) {
     } catch (e) {
       console.warn('Error al guardar concurso activo:', e);
     }
-  }, []);
+
+    if (usingSupabase && supabase) {
+      try {
+        await supabase
+          .from('concurso_config')
+          .upsert(
+            { key: 'active_concurso', value: nuevoConcurso, updated_at: new Date().toISOString() },
+            { onConflict: 'key' }
+          );
+      } catch (e) {
+        console.warn('No se pudo sincronizar concurso activo en Supabase:', e);
+      }
+    }
+  }, [usingSupabase]);
 
   const broadcastRef = useRef(null);
   const cargosRef = useRef([]);
@@ -235,6 +248,20 @@ export function CargosProvider({ children }) {
             setIsRealtimeConnected(true);
           }
 
+          try {
+            const { data: cfgData } = await supabase
+              .from('concurso_config')
+              .select('value')
+              .eq('key', 'active_concurso')
+              .maybeSingle();
+            if (cfgData?.value === 'traslado' || cfgData?.value === 'ingreso') {
+              setActiveConcursoState(cfgData.value);
+              localStorage.setItem(CONCURSO_STORAGE_KEY, cfgData.value);
+            }
+          } catch {
+            // Si aún no existe la tabla concurso_config, continuar con valor local
+          }
+
           subscription = supabase
             .channel('cargos-realtime')
             .on(
@@ -242,6 +269,21 @@ export function CargosProvider({ children }) {
               { event: '*', schema: 'public', table: SUPABASE_TABLE },
               (payload) => {
                 handleSupabaseChange(payload);
+              }
+            )
+            .on(
+              'postgres_changes',
+              { event: '*', schema: 'public', table: 'concurso_config' },
+              (payload) => {
+                const nextVal = payload.new?.value;
+                if (payload.new?.key === 'active_concurso' && (nextVal === 'traslado' || nextVal === 'ingreso')) {
+                  setActiveConcursoState(nextVal);
+                  try {
+                    localStorage.setItem(CONCURSO_STORAGE_KEY, nextVal);
+                  } catch {
+                    // Ignorar
+                  }
+                }
               }
             )
             .subscribe((status) => {

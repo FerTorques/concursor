@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 
 export function PublicBoard({ onNavigate }) {
-  const { cargos, loading, lastUpdatedId, lastUpdateNotice } = useCargos();
+  const { cargos, loading, lastUpdatedId, lastUpdateNotice, activeConcurso } = useCargos();
 
   // Estados de interfaz
   const [projectorMode, setProjectorMode] = useState(false);
@@ -150,7 +150,30 @@ export function PublicBoard({ onNavigate }) {
             }`}>
               Concurso de Traslados y Reincorporaciones N° 55 e Ingreso N° 47
             </h1>
-            <p className="text-sm text-slate-400 mt-1">
+            <div className="mt-2.5 flex flex-wrap items-center gap-2">
+              {activeConcurso === 'traslado' ? (
+                <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl border bg-sky-500/15 border-sky-400/50 text-sky-200 shadow-sm ${
+                  projectorMode ? 'text-base font-extrabold' : 'text-xs sm:text-sm font-bold'
+                }`}>
+                  <ArrowRightLeft className="w-4 h-4 text-sky-400 flex-shrink-0" />
+                  <span>
+                    <span className="text-sky-400 font-black uppercase tracking-wider mr-1.5">CONCURSO ACTIVO:</span>
+                    1° Concurso de Traslado Definitivo (Sin reservas)
+                  </span>
+                </div>
+              ) : (
+                <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl border bg-purple-500/15 border-purple-400/50 text-purple-200 shadow-sm ${
+                  projectorMode ? 'text-base font-extrabold' : 'text-xs sm:text-sm font-bold'
+                }`}>
+                  <GraduationCap className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                  <span>
+                    <span className="text-purple-400 font-black uppercase tracking-wider mr-1.5">CONCURSO ACTIVO:</span>
+                    2° Concurso de Ingreso a la Docencia (Con reservas)
+                  </span>
+                </div>
+              )}
+            </div>
+            <p className="text-sm text-slate-400 mt-2">
               Cargos Bibliotecarios • Ley 647-E Art. 266 • Junta de Clasificación de Nivel Primario y Modalidades
             </p>
           </div>

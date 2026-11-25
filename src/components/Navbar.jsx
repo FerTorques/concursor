@@ -4,7 +4,6 @@ import {
   Tv, 
   TvMinimal, 
   Radio, 
-  Shield, 
   BookOpen, 
   Volume2, 
   VolumeX
@@ -98,16 +97,8 @@ export function Navbar({
             )}
           </button>
 
-          {/* Navegación entre Vista Pública y Admin */}
-          {currentRoute === '/' ? (
-            <button
-              onClick={() => onNavigate && onNavigate('/admin')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/40 transition-colors"
-            >
-              <Shield className="w-4 h-4" />
-              <span>Admin</span>
-            </button>
-          ) : (
+          {/* Enlace de regreso desde Admin a Pizarra Pública */}
+          {currentRoute !== '/' && (
             <button
               onClick={() => onNavigate && onNavigate('/')}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"

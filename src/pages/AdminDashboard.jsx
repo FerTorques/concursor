@@ -700,7 +700,14 @@ export function AdminDashboard({ onNavigate }) {
         isOpen={Boolean(selectedCargoForDetail)}
         onClose={() => setSelectedCargoForDetail(null)}
         isAdmin={true}
-        onSave={(cargoId, updateData) => updateCargo(cargoId, updateData)}
+        onSave={async (cargoId, updateData) => {
+          const ok = await updateCargo(cargoId, updateData);
+          if (ok && soundEnabled) {
+            if (updateData.estado === 'reservada') playChime('reserve');
+            else if (updateData.estado === 'asignada') playChime('assign');
+            else playChime('success');
+          }
+        }}
       />
 
       <PdfImportModal
