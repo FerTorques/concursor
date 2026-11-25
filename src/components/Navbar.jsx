@@ -43,7 +43,7 @@ export function Navbar({
           />
           <div className="min-w-0">
             <span className="font-extrabold tracking-tight text-white text-sm sm:text-base lg:text-lg block truncate">
-              PIZARRA DIGITAL DE CONCURSOS BIBLIOTECARIOS - (ofrecido por ACHABI)
+              ACHABI - PIZARRA DIGITAL DE CONCURSOS BIBLIOTECARIOS
             </span>
             <p className="text-xs text-slate-300 truncate">
               Ascensos, Traslados, Reincorporaciones e Ingreso a la Docencia
