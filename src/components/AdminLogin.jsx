@@ -26,7 +26,7 @@ export function AdminLogin({ onCancel, onLoginSuccess }) {
 
   const fillDemoCredentials = () => {
     setEmail('admin@concursor.com');
-    setPassword('Concurso2026!');
+    setPassword('Concursos2026!');
   };
 
   return (
