@@ -575,7 +575,7 @@ export function AdminDashboard({ onNavigate }) {
                     onClick={() => setSelectedCargoForDetail(cargo)}
                     className={`hover:bg-slate-800/50 transition-colors cursor-pointer ${
                       cargo.id === lastUpdatedId ? 'bg-amber-500/10' : ''
-                    }`}
+                    } ${cargo.estado === 'no_habilitada' ? 'opacity-25 grayscale' : ''}`}
                   >
                     <td className="p-3 text-center font-mono font-black text-sky-400">
                       N° {cargo.orden}

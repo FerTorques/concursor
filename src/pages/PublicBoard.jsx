@@ -384,7 +384,7 @@ export function PublicBoard({ onNavigate }) {
                       onClick={() => setSelectedCargo(cargo)}
                       className={`hover:bg-slate-800/50 transition-colors cursor-pointer ${
                         isRecent ? 'bg-amber-500/10' : ''
-                      } ${cargo.estado === 'no_habilitada' ? 'opacity-60' : ''}`}
+                      } ${cargo.estado === 'no_habilitada' ? 'opacity-25 grayscale pointer-events-none' : ''}`}
                     >
                       <td className="p-3 text-center font-mono font-black text-sky-400 whitespace-nowrap">
                         N° {cargo.orden}

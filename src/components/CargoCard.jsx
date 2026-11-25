@@ -41,11 +41,11 @@ export function CargoCard({
 
   const stateStyles = {
     no_habilitada: {
-      card: 'bg-slate-900/60 border-slate-700/60 opacity-60 text-slate-400 grayscale cursor-not-allowed',
-      badge: 'bg-slate-800 text-slate-400 border-slate-700',
+      card: 'bg-slate-950 border-slate-800/30 opacity-30 text-slate-500 grayscale pointer-events-none cursor-not-allowed',
+      badge: 'bg-slate-900 text-slate-600 border-slate-800',
       badgeText: etiqueta_normativa?.toLowerCase().includes('desafectada') ? 'DESAFECTADA' : 'NO HABILITADA',
       icon: Ban,
-      accent: 'border-l-4 border-l-slate-600'
+      accent: 'border-l-4 border-l-slate-800'
     },
     disponible: {
       card: 'bg-slate-800/90 hover:bg-slate-800/100 border-emerald-500/40 text-slate-100 hover:border-emerald-400/80 shadow-emerald-950/20 shadow-md',
