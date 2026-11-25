@@ -53,13 +53,15 @@ export function Navbar({
 
         {/* Acciones principales */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Indicador de Sincronización en Vivo */}
-          <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-800/80 border border-slate-700 text-slate-300">
-            <span className={`w-2 h-2 rounded-full ${isRealtimeConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
-            <span>
-              {usingSupabase ? 'En vivo (Supabase)' : 'En vivo (Red Local)'}
-            </span>
-          </div>
+          {/* Indicador de Sincronización en Vivo (solo en Admin) */}
+          {currentRoute !== '/' && (
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-800/80 border border-slate-700 text-slate-300">
+              <span className={`w-2 h-2 rounded-full ${isRealtimeConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+              <span>
+                {usingSupabase ? 'En vivo (Supabase)' : 'En vivo (Red Local)'}
+              </span>
+            </div>
+          )}
 
           {/* Botón de Sonido */}
           <button
