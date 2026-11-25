@@ -4,7 +4,6 @@ import {
   Tv, 
   TvMinimal, 
   Radio, 
-  BookOpen, 
   Volume2, 
   VolumeX
 } from 'lucide-react';
@@ -35,22 +34,19 @@ export function Navbar({
         : 'bg-slate-900/90 border-slate-800 py-3'
     }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
-        {/* Marca y Título Oficial */}
+        {/* Logo ACHABI en la esquina y Cabecera */}
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-sky-600/30 flex-shrink-0">
-            <BookOpen className="w-5 h-5 text-white" />
-          </div>
+          <img
+            src="/logo-achabi.png"
+            alt="Logo ACHABI - Asociación Chaqueña de Bibliotecarios"
+            className="w-11 h-11 rounded-full object-cover shadow-lg shadow-sky-600/30 flex-shrink-0 bg-white ring-2 ring-sky-400/40"
+          />
           <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-extrabold tracking-tight text-white text-base sm:text-lg truncate">
-                Concurso Bibliotecario N° 55 y N° 47
-              </span>
-              <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-sky-950 text-sky-400 border border-sky-800 uppercase tracking-wider">
-                Ley 647-E
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 truncate">
-              Traslados, Reincorporaciones e Ingreso • Ministerio de Educación Chaco
+            <span className="font-extrabold tracking-tight text-white text-sm sm:text-base lg:text-lg block truncate">
+              PIZARRA DIGITAL DE CONCURSOS BIBLIOTECARIOS - (ofrecido por ACHABI)
+            </span>
+            <p className="text-xs text-slate-300 truncate">
+              Ascensos, Traslados, Reincorporaciones e Ingreso a la Docencia
             </p>
           </div>
         </div>
