@@ -700,8 +700,8 @@ export function AdminDashboard({ onNavigate }) {
         isOpen={Boolean(selectedCargoForDetail)}
         onClose={() => setSelectedCargoForDetail(null)}
         isAdmin={true}
-        onSave={async (cargoId, updateData) => {
-          const ok = await updateCargo(cargoId, updateData);
+        onSave={async (cargoId, updateData, options) => {
+          const ok = await updateCargo(cargoId, updateData, options);
           if (ok && soundEnabled) {
             if (updateData.estado === 'reservada') playChime('reserve');
             else if (updateData.estado === 'asignada') playChime('assign');

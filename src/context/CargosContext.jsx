@@ -351,12 +351,28 @@ export function CargosProvider({ children }) {
     }
   }, [usingSupabase, sessionUser]);
 
-  const updateCargo = useCallback(async (cargoId, updateData) => {
+  const updateCargo = useCallback(async (cargoId, updateData, options = {}) => {
     const current = cargosRef.current.find(c => c.id === cargoId);
     if (!current) return false;
 
     const previousState = { ...current };
-    const targetOrden = current.orden;
+    const previousOrden = Number(previousState.orden);
+    const targetOrden = updateData.orden !== undefined ? Number(updateData.orden) : previousOrden;
+
+    if (!Number.isInteger(targetOrden) || targetOrden < 1) {
+      setError('El número de orden debe ser un entero mayor o igual a 1.');
+      return false;
+    }
+
+    const ordenChanged = targetOrden !== previousOrden;
+    const conflictingCargo = ordenChanged
+      ? cargosRef.current.find(c => c.id !== cargoId && Number(c.orden) === targetOrden)
+      : null;
+
+    if (conflictingCargo && !options.swapOrdenWithConflict) {
+      setError(`El N° de orden ${targetOrden} ya está asignado a "${conflictingCargo.nombre}". Activá el intercambio para reasignarlo.`);
+      return false;
+    }
 
     // Determinar concurso_asignacion según la regla:
     // Si pasa a asignada o reservada y no se especificó concurso, hereda el activeConcurso.
@@ -380,13 +396,26 @@ export function CargosProvider({ children }) {
       return false;
     }
 
+    const nowIso = new Date().toISOString();
+    const updatedBy = sessionUser?.email || previousState.updated_by || '';
+
     const mergedCargo = {
       ...previousState,
       ...updateData,
+      orden: targetOrden,
       concurso_asignacion: targetConcurso,
-      updated_at: new Date().toISOString(),
-      updated_by: sessionUser?.email || previousState.updated_by || ''
+      updated_at: nowIso,
+      updated_by: updatedBy
     };
+
+    const swappedConflictCargo = conflictingCargo
+      ? {
+          ...conflictingCargo,
+          orden: previousOrden,
+          updated_at: nowIso,
+          updated_by: updatedBy
+        }
+      : null;
 
     const undoItem = {
       id: `undo-${Date.now()}`,
@@ -396,7 +425,9 @@ export function CargosProvider({ children }) {
       previousData: previousState,
       newData: mergedCargo,
       timestamp: Date.now(),
-      description: `Orden ${targetOrden}: ${previousState.estado} ➔ ${mergedCargo.estado}`
+      description: ordenChanged
+        ? `Orden ${previousOrden} ➔ ${targetOrden} (${mergedCargo.nombre})`
+        : `Orden ${targetOrden}: ${previousState.estado} ➔ ${mergedCargo.estado}`
     };
 
     const newUndoStack = [undoItem, ...undoStack.slice(0, 49)];
@@ -408,7 +439,13 @@ export function CargosProvider({ children }) {
     }
 
     setCargos((prev) => {
-      const updated = prev.map(c => c.id === cargoId ? mergedCargo : c);
+      const updated = sortByOrden(
+        prev.map(c => {
+          if (c.id === cargoId) return mergedCargo;
+          if (swappedConflictCargo && c.id === swappedConflictCargo.id) return swappedConflictCargo;
+          return c;
+        })
+      );
       if (!usingSupabase) {
         persistirLocal(updated, cargoId, {
           orden: targetOrden,
@@ -430,31 +467,88 @@ export function CargosProvider({ children }) {
 
     if (usingSupabase && supabase) {
       try {
-        const dbPayload = toSupabasePayload(mergedCargo);
-        const query = supabase.from(SUPABASE_TABLE).update(dbPayload);
-        const { data: savedRow, error: sbErr } = await (
-          UUID_REGEX.test(String(cargoId))
-            ? query.eq('id', cargoId)
-            : query.eq('orden', Number(targetOrden))
-        )
-          .select()
-          .single();
+        if (swappedConflictCargo) {
+          // Intercambio en 3 pasos para respetar el constraint UNIQUE(orden) en Supabase
+          const tempOrden = -Math.abs(Math.floor(Date.now() % 100000000) + previousOrden);
 
-        if (sbErr) {
-          console.error('Error al actualizar cargo en Supabase:', sbErr);
-          setError(sbErr.message);
-          setCargos((prev) => prev.map(c => c.id === cargoId ? previousState : c));
-          return false;
-        }
+          const { error: step1Err } = await supabase
+            .from(SUPABASE_TABLE)
+            .update({ orden: tempOrden })
+            .eq('id', cargoId);
 
-        if (savedRow) {
-          setCargos((prev) => prev.map(c => (c.id === cargoId || Number(c.orden) === Number(savedRow.orden)) ? savedRow : c));
-          setLastUpdatedId(savedRow.id);
-          await logHistorialSupabase(previousState, savedRow);
+          if (step1Err) throw step1Err;
+
+          const { data: savedConflictRow, error: step2Err } = await supabase
+            .from(SUPABASE_TABLE)
+            .update({ orden: previousOrden, updated_at: nowIso, updated_by: updatedBy })
+            .eq('id', swappedConflictCargo.id)
+            .select()
+            .single();
+
+          if (step2Err) {
+            await supabase.from(SUPABASE_TABLE).update({ orden: previousOrden }).eq('id', cargoId);
+            throw step2Err;
+          }
+
+          const dbPayload = toSupabasePayload(mergedCargo);
+          const { data: savedRow, error: step3Err } = await supabase
+            .from(SUPABASE_TABLE)
+            .update(dbPayload)
+            .eq('id', cargoId)
+            .select()
+            .single();
+
+          if (step3Err) throw step3Err;
+
+          setCargos((prev) =>
+            sortByOrden(
+              prev.map(c => {
+                if (savedRow && c.id === cargoId) return savedRow;
+                if (savedConflictRow && c.id === swappedConflictCargo.id) return savedConflictRow;
+                return c;
+              })
+            )
+          );
+          if (savedRow) {
+            setLastUpdatedId(savedRow.id);
+            await logHistorialSupabase(previousState, savedRow);
+          }
+        } else {
+          const dbPayload = toSupabasePayload(mergedCargo);
+          const query = supabase.from(SUPABASE_TABLE).update(dbPayload);
+          const { data: savedRow, error: sbErr } = await (
+            UUID_REGEX.test(String(cargoId))
+              ? query.eq('id', cargoId)
+              : query.eq('orden', previousOrden)
+          )
+            .select()
+            .single();
+
+          if (sbErr) {
+            console.error('Error al actualizar cargo en Supabase:', sbErr);
+            setError(sbErr.message);
+            setCargos((prev) => sortByOrden(prev.map(c => c.id === cargoId ? previousState : c)));
+            return false;
+          }
+
+          if (savedRow) {
+            setCargos((prev) => sortByOrden(prev.map(c => (c.id === cargoId || c.id === savedRow.id) ? savedRow : c)));
+            setLastUpdatedId(savedRow.id);
+            await logHistorialSupabase(previousState, savedRow);
+          }
         }
       } catch (err) {
         console.error('Fallo de red Supabase:', err);
         setError(err.message);
+        setCargos((prev) =>
+          sortByOrden(
+            prev.map(c => {
+              if (c.id === cargoId) return previousState;
+              if (conflictingCargo && c.id === conflictingCargo.id) return conflictingCargo;
+              return c;
+            })
+          )
+        );
         return false;
       }
     }

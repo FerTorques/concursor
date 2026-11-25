@@ -21,7 +21,9 @@ export function CargoDetailModal({
   isAdmin = false,
   onSave
 }) {
-  const { activeConcurso } = useCargos();
+  const { activeConcurso, cargos } = useCargos();
+  const [ordenInput, setOrdenInput] = useState('');
+  const [swapOrden, setSwapOrden] = useState(true);
   const [estado, setEstado] = useState('disponible');
   const [concursoAsignacion, setConcursoAsignacion] = useState('traslado');
   const [titularNombre, setTitularNombre] = useState('');
@@ -33,6 +35,8 @@ export function CargoDetailModal({
   // Sincronizar estado local al abrir o cambiar de cargo
   useEffect(() => {
     if (cargo) {
+      setOrdenInput(cargo.orden !== undefined && cargo.orden !== null ? String(cargo.orden) : '');
+      setSwapOrden(true);
       setEstado(cargo.estado || 'disponible');
       setConcursoAsignacion(cargo.concurso_asignacion || activeConcurso || 'traslado');
       setTitularNombre(cargo.titular_nombre || '');
@@ -45,8 +49,17 @@ export function CargoDetailModal({
 
   if (!isOpen || !cargo) return null;
 
+  const parsedOrden = Number.parseInt(ordenInput, 10);
+  const isOrdenValid = Number.isInteger(parsedOrden) && parsedOrden >= 1;
+  const ordenChanged = isOrdenValid && parsedOrden !== Number(cargo.orden);
+  const conflictingCargo = ordenChanged
+    ? cargos.find((c) => c.id !== cargo.id && Number(c.orden) === parsedOrden)
+    : null;
+  const canSubmitOrden = isOrdenValid && (!conflictingCargo || swapOrden);
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!canSubmitOrden) return;
     if (onSave) {
       let finalEstado = estado;
       const hasTitular = titularNombre.trim() !== '' || titularDni.trim() !== '';
@@ -60,17 +73,24 @@ export function CargoDetailModal({
 
       const clearApplicants = finalEstado === 'disponible';
       const isTraslado = concursoAsignacion === 'traslado';
-      onSave(cargo.id, {
-        estado: finalEstado,
-        concurso_asignacion: clearApplicants ? null : concursoAsignacion,
-        titular_nombre: clearApplicants
-          ? ''
-          : (titularNombre.trim() || (finalEstado !== 'no_habilitada' ? 'Aspirante Titular' : '')),
-        titular_dni: clearApplicants ? '' : titularDni.trim(),
-        reserva_nombre: (clearApplicants || isTraslado) ? '' : reservaNombre.trim(),
-        reserva_dni: (clearApplicants || isTraslado) ? '' : reservaDni.trim(),
-        observaciones: observaciones.trim()
-      });
+      onSave(
+        cargo.id,
+        {
+          orden: parsedOrden,
+          estado: finalEstado,
+          concurso_asignacion: clearApplicants ? null : concursoAsignacion,
+          titular_nombre: clearApplicants
+            ? ''
+            : (titularNombre.trim() || (finalEstado !== 'no_habilitada' ? 'Aspirante Titular' : '')),
+          titular_dni: clearApplicants ? '' : titularDni.trim(),
+          reserva_nombre: (clearApplicants || isTraslado) ? '' : reservaNombre.trim(),
+          reserva_dni: (clearApplicants || isTraslado) ? '' : reservaDni.trim(),
+          observaciones: observaciones.trim()
+        },
+        {
+          swapOrdenWithConflict: Boolean(conflictingCargo && swapOrden)
+        }
+      );
     }
     onClose();
   };
@@ -248,6 +268,57 @@ export function CargoDetailModal({
 
           {isAdmin && (
             <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+              {/* Número de Orden */}
+              <div className="p-3.5 rounded-xl bg-slate-800/40 border border-slate-700/80 space-y-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <label htmlFor="cargo-orden-input" className="text-xs font-bold uppercase tracking-wider text-sky-300 block">
+                      N° de Orden (Acto Real)
+                    </label>
+                    <span className="text-[11px] text-slate-400">
+                      Podés corregirlo si difiere del listado oficial del acto.
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-slate-400 text-sm">N°</span>
+                    <input
+                      id="cargo-orden-input"
+                      type="number"
+                      min={1}
+                      step={1}
+                      value={ordenInput}
+                      onChange={(e) => setOrdenInput(e.target.value)}
+                      className="w-28 bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 font-mono font-black text-base text-white text-center focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                </div>
+
+                {!isOrdenValid && (
+                  <p className="text-xs text-rose-400 font-semibold">
+                    Ingresá un número de orden válido (entero mayor o igual a 1).
+                  </p>
+                )}
+
+                {conflictingCargo && (
+                  <div className="p-2.5 rounded-lg bg-amber-950/40 border border-amber-500/40 text-xs text-amber-200 space-y-2">
+                    <p>
+                      El <strong>N° {parsedOrden}</strong> actualmente pertenece a:{' '}
+                      <strong className="text-white">{conflictingCargo.nombre}</strong>
+                      {conflictingCargo.localidad ? ` (${conflictingCargo.localidad})` : ''}.
+                    </p>
+                    <label className="flex items-center gap-2 cursor-pointer select-none font-semibold text-amber-300">
+                      <input
+                        type="checkbox"
+                        checked={swapOrden}
+                        onChange={(e) => setSwapOrden(e.target.checked)}
+                        className="rounded border-amber-500 bg-slate-900 text-amber-500 focus:ring-amber-500"
+                      />
+                      Intercambiar números (ese cargo pasará al N° {cargo.orden})
+                    </label>
+                  </div>
+                )}
+              </div>
+
               {/* Selector de Concurso para esta adjudicación */}
               <div className="space-y-1.5 p-3 rounded-xl bg-slate-800/40 border border-slate-700/80">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-300 block">
@@ -467,7 +538,12 @@ export function CargoDetailModal({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-sm font-bold rounded-xl bg-sky-600 hover:bg-sky-500 text-white transition-colors flex items-center gap-2 shadow-lg shadow-sky-900/40"
+                  disabled={!canSubmitOrden}
+                  className={`px-5 py-2 text-sm font-bold rounded-xl transition-colors flex items-center gap-2 shadow-lg ${
+                    canSubmitOrden
+                      ? 'bg-sky-600 hover:bg-sky-500 text-white shadow-sky-900/40'
+                      : 'bg-slate-800 text-slate-500 cursor-not-allowed shadow-none'
+                  }`}
                 >
                   <Save className="w-4 h-4" />
                   Guardar Cambios
