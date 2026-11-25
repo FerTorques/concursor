@@ -61,7 +61,7 @@ export function CargoCard({
         : 'bg-amber-500 text-slate-950 font-black border-amber-400 animate-pulse-fast',
       badgeText: concurso_asignacion === 'traslado'
         ? 'TRASLADO'
-        : 'ASIGNADA (Ingreso) — Admite 1 reserva',
+        : 'INGRESO',
       icon: Clock,
       accent: concurso_asignacion === 'traslado' ? 'border-l-4 border-l-sky-400' : 'border-l-4 border-l-amber-400'
     },
