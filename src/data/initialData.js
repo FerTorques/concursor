@@ -278,7 +278,7 @@ export const INITIAL_CARGOS = [
   {
     id: "cargo-14",
     orden: 185,
-    region: "REGION X B - Resistencia",
+    region: "REGION XB - Resistencia",
     nombre: "B.P. N° 1 'Nicolás Avellaneda'",
     bp: "1",
     cat: "1ª",
@@ -299,7 +299,7 @@ export const INITIAL_CARGOS = [
   {
     id: "cargo-15",
     orden: 204,
-    region: "REGION X B - Resistencia",
+    region: "REGION XB - Resistencia",
     nombre: "Evita",
     bp: "234",
     cat: "2ª",
@@ -320,7 +320,7 @@ export const INITIAL_CARGOS = [
   {
     id: "cargo-16",
     orden: 210,
-    region: "REGION X B - Resistencia",
+    region: "REGION XB - Resistencia",
     nombre: "B.P. N° 415 'Constancio C. Vigil'",
     bp: "415",
     cat: "2ª",

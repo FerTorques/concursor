@@ -18,7 +18,12 @@ import {
   History, 
   LayoutGrid, 
   Table as TableIcon,
-  X
+  X,
+  ArrowRightLeft,
+  GraduationCap,
+  AlertTriangle,
+  Info,
+  Layers
 } from 'lucide-react';
 
 export function AdminDashboard({ onNavigate }) {
@@ -29,6 +34,8 @@ export function AdminDashboard({ onNavigate }) {
     undoStack, 
     lastUpdatedId,
     sessionUser,
+    activeConcurso,
+    setActiveConcurso,
     updateCargo, 
     undoLastAction, 
     batchSaveCargos,
@@ -89,15 +96,26 @@ export function AdminDashboard({ onNavigate }) {
     );
   }
 
-  // Manejar acción rápida de un clic
+  // Manejar acción rápida de un clic con validaciones reglamentarias
   const handleQuickAction = (cargo, action) => {
     if (action === 'asignar') {
+      if (activeConcurso === 'traslado' && stats.isCupoTrasladoAlcanzado) {
+        setUndoNotice(`¡Atención! Se ha completado el cupo del 50% (${stats.cupoMaximoTraslado} vacantes) de Traslado Definitivo. Cambie al Concurso de Ingreso a la Docencia.`);
+        if (soundEnabled) playChime('warning');
+        setTimeout(() => setUndoNotice(null), 5000);
+        return;
+      }
       setQuickActionState({
         isOpen: true,
         cargo,
         actionType: 'asignar'
       });
     } else if (action === 'reservar') {
+      if (cargo.concurso_asignacion === 'traslado') {
+        setUndoNotice('Los cargos asignados en Traslado Definitivo no admiten reservas reglamentariamente (Ley 647-E).');
+        setTimeout(() => setUndoNotice(null), 4000);
+        return;
+      }
       setQuickActionState({
         isOpen: true,
         cargo,
@@ -106,6 +124,7 @@ export function AdminDashboard({ onNavigate }) {
     } else if (action === 'liberar') {
       updateCargo(cargo.id, {
         estado: 'disponible',
+        concurso_asignacion: null,
         titular_nombre: '',
         titular_dni: '',
         reserva_nombre: '',
@@ -114,17 +133,19 @@ export function AdminDashboard({ onNavigate }) {
       if (soundEnabled) playChime('success');
     } else if (action === 'habilitar') {
       updateCargo(cargo.id, {
-        estado: 'disponible'
+        estado: 'disponible',
+        concurso_asignacion: null
       });
       if (soundEnabled) playChime('success');
     }
   };
 
   // Confirmar desde el modal de acción rápida
-  const handleConfirmQuickModal = ({ cargoId, actionType, nombre, dni }) => {
+  const handleConfirmQuickModal = ({ cargoId, actionType, nombre, dni, concurso_asignacion }) => {
     if (actionType === 'asignar') {
       updateCargo(cargoId, {
         estado: 'asignada',
+        concurso_asignacion: concurso_asignacion || activeConcurso,
         titular_nombre: nombre || 'Aspirante Titular',
         titular_dni: dni
       });
@@ -151,7 +172,7 @@ export function AdminDashboard({ onNavigate }) {
 
   // Exportar el estado actual a un archivo CSV descargable
   const handleExportCSV = () => {
-    const headers = ['Orden', 'Región', 'Establecimiento', 'B.P.', 'Cat.', 'Mod.', 'Zona', 'Jornada', 'Localidad', 'Origen', 'Estado', 'Titular Nombre', 'Titular DNI', 'Reserva Nombre', 'Reserva DNI', 'Normativa'];
+    const headers = ['Orden', 'Región', 'Establecimiento', 'B.P.', 'Cat.', 'Mod.', 'Zona', 'Jornada', 'Localidad', 'Origen', 'Estado', 'Concurso Adjudicación', 'Titular Nombre', 'Titular DNI', 'Reserva Nombre', 'Reserva DNI', 'Normativa'];
     const rows = cargos.map(c => [
       c.orden,
       `"${c.region || ''}"`,
@@ -164,6 +185,7 @@ export function AdminDashboard({ onNavigate }) {
       `"${c.localidad || ''}"`,
       `"${c.origen || ''}"`,
       c.estado,
+      c.concurso_asignacion === 'traslado' ? 'Traslado Definitivo' : c.concurso_asignacion === 'ingreso' ? 'Ingreso a la Docencia' : '',
       `"${c.titular_nombre || ''}"`,
       `"${c.titular_dni || ''}"`,
       `"${c.reserva_nombre || ''}"`,
@@ -217,7 +239,7 @@ export function AdminDashboard({ onNavigate }) {
               Gestor de Vacantes y Asignaciones en Tiempo Real
             </h1>
             <p className="text-xs text-slate-400 mt-1">
-              Operación directa con un clic • Auditoría y deshacer inmediato • Sincronización continua
+              Concurso N° 55 (Traslado Definitivo) y Concurso N° 47 (Ingreso a la Docencia) • Ley 647-E
             </p>
           </div>
 
@@ -268,6 +290,149 @@ export function AdminDashboard({ onNavigate }) {
               <LogOut className="w-4 h-4" />
             </button>
           </div>
+        </div>
+
+        {/* SELECTOR DE CONCURSO ACTIVO PARA OPERAR */}
+        <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3 shadow-lg">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+            <div>
+              <span className="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                <Layers className="w-4 h-4" />
+                Configuración del Concurso en Operación:
+              </span>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Seleccione el concurso activo para registrar asignaciones y reservas según las reglas normativas.
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-bold text-slate-400">Modo activo:</span>
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-black border ${
+                activeConcurso === 'traslado'
+                  ? 'bg-sky-500/20 text-sky-300 border-sky-500/40'
+                  : 'bg-purple-500/20 text-purple-300 border-purple-500/40'
+              }`}>
+                {activeConcurso === 'traslado' ? 'Traslado Definitivo' : 'Ingreso a la Docencia'}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Opción 1: Traslado Definitivo */}
+            <button
+              type="button"
+              onClick={() => setActiveConcurso('traslado')}
+              className={`p-3.5 rounded-xl border text-left transition-all relative overflow-hidden ${
+                activeConcurso === 'traslado'
+                  ? 'bg-gradient-to-br from-sky-950/80 via-sky-900/40 to-slate-900 border-sky-400 ring-2 ring-sky-400/40 shadow-xl'
+                  : 'bg-slate-950/60 border-slate-800 hover:border-slate-700 opacity-75 hover:opacity-100'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className={`p-2 rounded-xl ${
+                    activeConcurso === 'traslado' ? 'bg-sky-500 text-slate-950 font-black' : 'bg-slate-800 text-slate-400'
+                  }`}>
+                    <ArrowRightLeft className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-white text-sm">
+                      Concurso de Traslado Definitivo
+                    </h3>
+                    <span className="text-[11px] text-sky-300 font-medium block">
+                      Hasta 50% de vacantes • Sin reservas
+                    </span>
+                  </div>
+                </div>
+                <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase ${
+                  activeConcurso === 'traslado'
+                    ? 'bg-sky-400 text-slate-950'
+                    : 'bg-slate-800 text-slate-400'
+                }`}>
+                  {activeConcurso === 'traslado' ? 'ACTIVO' : 'SELECCIONAR'}
+                </span>
+              </div>
+
+              <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                <span className="text-slate-400">
+                  Cupo asignado: <strong className="text-white font-mono">{stats.asignadasTraslado}</strong> / {stats.cupoMaximoTraslado} ({stats.cupoRestanteTraslado} restan)
+                </span>
+                <span className="font-semibold text-rose-300 text-[11px]">
+                  • Sin reservas
+                </span>
+              </div>
+            </button>
+
+            {/* Opción 2: Ingreso a la Docencia */}
+            <button
+              type="button"
+              onClick={() => setActiveConcurso('ingreso')}
+              className={`p-3.5 rounded-xl border text-left transition-all relative overflow-hidden ${
+                activeConcurso === 'ingreso'
+                  ? 'bg-gradient-to-br from-purple-950/80 via-purple-900/40 to-slate-900 border-purple-400 ring-2 ring-purple-400/40 shadow-xl'
+                  : 'bg-slate-950/60 border-slate-800 hover:border-slate-700 opacity-75 hover:opacity-100'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className={`p-2 rounded-xl ${
+                    activeConcurso === 'ingreso' ? 'bg-purple-500 text-white font-black' : 'bg-slate-800 text-slate-400'
+                  }`}>
+                    <GraduationCap className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-white text-sm">
+                      Concurso de Ingreso a la Docencia
+                    </h3>
+                    <span className="text-[11px] text-purple-300 font-medium block">
+                      Vacantes restantes • Con reservas de ingreso
+                    </span>
+                  </div>
+                </div>
+                <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase ${
+                  activeConcurso === 'ingreso'
+                    ? 'bg-purple-400 text-slate-950'
+                    : 'bg-slate-800 text-slate-400'
+                }`}>
+                  {activeConcurso === 'ingreso' ? 'ACTIVO' : 'SELECCIONAR'}
+                </span>
+              </div>
+
+              <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                <span className="text-slate-400">
+                  Adjudicadas: <strong className="text-white font-mono">{stats.asignadasIngreso}</strong> • Reservas: <strong className="text-white font-mono">{stats.reservadasIngreso}</strong>
+                </span>
+                <span className="font-semibold text-emerald-400 text-[11px]">
+                  • Admite reservas
+                </span>
+              </div>
+            </button>
+          </div>
+
+          {/* Banner informativo de normas operativas */}
+          {activeConcurso === 'traslado' ? (
+            stats.isCupoTrasladoAlcanzado ? (
+              <div className="p-3 rounded-xl bg-amber-500/20 border border-amber-500/50 flex items-center gap-2.5 text-xs text-amber-200">
+                <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0" />
+                <span>
+                  <strong>¡Cupo máximo del 50% alcanzado!</strong> Se han cubierto {stats.cupoMaximoTraslado} cargos para Traslado Definitivo. Para continuar con los cargos restantes, seleccione el <strong>Concurso de Ingreso a la Docencia</strong>.
+                </span>
+              </div>
+            ) : (
+              <div className="p-3 rounded-xl bg-sky-950/40 border border-sky-800/60 flex items-center gap-2.5 text-xs text-sky-200">
+                <Info className="w-5 h-5 text-sky-400 flex-shrink-0" />
+                <span>
+                  <strong>Modo Traslado Definitivo activo:</strong> Se puede cubrir hasta el 50% de la totalidad de vacantes ({stats.cupoRestanteTraslado} disponibles en este cupo). En este concurso los cargos no admiten reservas (Ley 647-E).
+                </span>
+              </div>
+            )
+          ) : (
+            <div className="p-3 rounded-xl bg-purple-950/40 border border-purple-800/60 flex items-center gap-2.5 text-xs text-purple-200">
+              <Info className="w-5 h-5 text-purple-400 flex-shrink-0" />
+              <span>
+                <strong>Modo Ingreso a la Docencia activo:</strong> Se adjudican las vacantes disponibles restantes. En este concurso SÍ se pueden tomar reservas (2° aspirante) exclusivamente sobre los cargos adjudicados en esta etapa.
+              </span>
+            </div>
+          )}
         </div>
 
         <StatCounters projectorMode={false} />
@@ -409,7 +574,7 @@ export function AdminDashboard({ onNavigate }) {
                     onClick={() => setSelectedCargoForDetail(cargo)}
                     className={`hover:bg-slate-800/50 transition-colors cursor-pointer ${
                       cargo.id === lastUpdatedId ? 'bg-amber-500/10' : ''
-                    }`}
+                    } ${cargo.estado === 'no_habilitada' ? 'opacity-25 grayscale' : ''}`}
                   >
                     <td className="p-3 text-center font-mono font-black text-sky-400">
                       N° {cargo.orden}
@@ -434,13 +599,28 @@ export function AdminDashboard({ onNavigate }) {
                         cargo.estado === 'disponible'
                           ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50'
                           : cargo.estado === 'asignada'
-                          ? 'bg-amber-500 text-slate-950 border-amber-400'
+                          ? (cargo.concurso_asignacion === 'traslado' ? 'bg-sky-500 text-slate-950 border-sky-400' : 'bg-amber-500 text-slate-950 border-amber-400')
                           : cargo.estado === 'reservada'
                           ? 'bg-rose-600 text-white border-rose-500'
                           : 'bg-slate-800 text-slate-400 border-slate-700'
                       }`}>
                         {cargo.estado === 'asignada' ? 'Adjudicada' : cargo.estado}
                       </span>
+                    </td>
+                    <td className="p-3">
+                      {cargo.concurso_asignacion === 'traslado' ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-sky-950 text-sky-300 border border-sky-500/50 shadow-sm">
+                          <ArrowRightLeft className="w-3 h-3 text-sky-400" />
+                          Traslado
+                        </span>
+                      ) : cargo.concurso_asignacion === 'ingreso' ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-purple-950 text-purple-300 border border-purple-500/50 shadow-sm">
+                          <GraduationCap className="w-3 h-3 text-purple-400" />
+                          Ingreso
+                        </span>
+                      ) : (
+                        <span className="text-slate-500 font-mono text-[11px]">—</span>
+                      )}
                     </td>
                     <td className="p-3 font-mono text-amber-200 truncate max-w-[140px]">
                       {cargo.titular_nombre || '—'}
@@ -460,12 +640,18 @@ export function AdminDashboard({ onNavigate }) {
                         )}
                         {cargo.estado === 'asignada' && (
                           <>
-                            <button
-                              onClick={() => handleQuickAction(cargo, 'reservar')}
-                              className="px-2 py-1 text-xs font-bold rounded-lg bg-rose-600 hover:bg-rose-500 text-white transition-colors"
-                            >
-                              Reserva
-                            </button>
+                            {cargo.concurso_asignacion === 'traslado' ? (
+                              <span className="text-[10px] text-sky-300 font-semibold bg-sky-950/60 px-2 py-1 rounded border border-sky-800">
+                                Sin reserva
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() => handleQuickAction(cargo, 'reservar')}
+                                className="px-2 py-1 text-xs font-bold rounded-lg bg-rose-600 hover:bg-rose-500 text-white transition-colors"
+                              >
+                                Reserva
+                              </button>
+                            )}
                             <button
                               onClick={() => handleQuickAction(cargo, 'liberar')}
                               className="px-2 py-1 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
@@ -513,7 +699,14 @@ export function AdminDashboard({ onNavigate }) {
         isOpen={Boolean(selectedCargoForDetail)}
         onClose={() => setSelectedCargoForDetail(null)}
         isAdmin={true}
-        onSave={(cargoId, updateData) => updateCargo(cargoId, updateData)}
+        onSave={async (cargoId, updateData, options) => {
+          const ok = await updateCargo(cargoId, updateData, options);
+          if (ok && soundEnabled) {
+            if (updateData.estado === 'reservada') playChime('reserve');
+            else if (updateData.estado === 'asignada') playChime('assign');
+            else playChime('success');
+          }
+        }}
       />
 
       <PdfImportModal

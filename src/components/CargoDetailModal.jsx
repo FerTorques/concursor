@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useCargos } from '../context/CargosContext';
 import { 
   X, 
   MapPin, 
@@ -8,7 +9,9 @@ import {
   ShieldAlert, 
   Ban, 
   CheckCircle2,
-  Save
+  Save,
+  ArrowRightLeft,
+  GraduationCap
 } from 'lucide-react';
 
 export function CargoDetailModal({ 
@@ -18,7 +21,11 @@ export function CargoDetailModal({
   isAdmin = false,
   onSave
 }) {
+  const { activeConcurso, cargos } = useCargos();
+  const [ordenInput, setOrdenInput] = useState('');
+  const [swapOrden, setSwapOrden] = useState(true);
   const [estado, setEstado] = useState('disponible');
+  const [concursoAsignacion, setConcursoAsignacion] = useState('traslado');
   const [titularNombre, setTitularNombre] = useState('');
   const [titularDni, setTitularDni] = useState('');
   const [reservaNombre, setReservaNombre] = useState('');
@@ -28,29 +35,62 @@ export function CargoDetailModal({
   // Sincronizar estado local al abrir o cambiar de cargo
   useEffect(() => {
     if (cargo) {
+      setOrdenInput(cargo.orden !== undefined && cargo.orden !== null ? String(cargo.orden) : '');
+      setSwapOrden(true);
       setEstado(cargo.estado || 'disponible');
+      setConcursoAsignacion(cargo.concurso_asignacion || activeConcurso || 'traslado');
       setTitularNombre(cargo.titular_nombre || '');
       setTitularDni(cargo.titular_dni || '');
       setReservaNombre(cargo.reserva_nombre || '');
       setReservaDni(cargo.reserva_dni || '');
       setObservaciones(cargo.observaciones || '');
     }
-  }, [cargo]);
+  }, [cargo, activeConcurso]);
 
   if (!isOpen || !cargo) return null;
 
+  const parsedOrden = Number.parseInt(ordenInput, 10);
+  const isOrdenValid = Number.isInteger(parsedOrden) && parsedOrden >= 1;
+  const ordenChanged = isOrdenValid && parsedOrden !== Number(cargo.orden);
+  const conflictingCargo = ordenChanged
+    ? cargos.find((c) => c.id !== cargo.id && Number(c.orden) === parsedOrden)
+    : null;
+  const canSubmitOrden = isOrdenValid && (!conflictingCargo || swapOrden);
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!canSubmitOrden) return;
     if (onSave) {
-      const clearApplicants = estado === 'disponible';
-      onSave(cargo.id, {
-        estado,
-        titular_nombre: clearApplicants ? '' : titularNombre,
-        titular_dni: clearApplicants ? '' : titularDni,
-        reserva_nombre: clearApplicants ? '' : reservaNombre,
-        reserva_dni: clearApplicants ? '' : reservaDni,
-        observaciones
-      });
+      let finalEstado = estado;
+      const hasTitular = titularNombre.trim() !== '' || titularDni.trim() !== '';
+      const hasReserva = (reservaNombre.trim() !== '' || reservaDni.trim() !== '') && concursoAsignacion !== 'traslado';
+
+      if (finalEstado === 'disponible' && (hasTitular || hasReserva)) {
+        finalEstado = hasReserva ? 'reservada' : 'asignada';
+      } else if (finalEstado === 'asignada' && hasReserva) {
+        finalEstado = 'reservada';
+      }
+
+      const clearApplicants = finalEstado === 'disponible';
+      const isTraslado = concursoAsignacion === 'traslado';
+      onSave(
+        cargo.id,
+        {
+          orden: parsedOrden,
+          estado: finalEstado,
+          concurso_asignacion: clearApplicants ? null : concursoAsignacion,
+          titular_nombre: clearApplicants
+            ? ''
+            : (titularNombre.trim() || (finalEstado !== 'no_habilitada' ? 'Aspirante Titular' : '')),
+          titular_dni: clearApplicants ? '' : titularDni.trim(),
+          reserva_nombre: (clearApplicants || isTraslado) ? '' : reservaNombre.trim(),
+          reserva_dni: (clearApplicants || isTraslado) ? '' : reservaDni.trim(),
+          observaciones: observaciones.trim()
+        },
+        {
+          swapOrdenWithConflict: Boolean(conflictingCargo && swapOrden)
+        }
+      );
     }
     onClose();
   };
@@ -164,6 +204,22 @@ export function CargoDetailModal({
                   {cargo.estado === 'no_habilitada' && <Ban className="w-4 h-4" />}
                   {cargo.estado === 'asignada' ? 'Adjudicada' : cargo.estado}
                 </span>
+
+                {cargo.concurso_asignacion && (
+                  <div className="mt-2.5">
+                    {cargo.concurso_asignacion === 'traslado' ? (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-sky-950 text-sky-300 border border-sky-500/50">
+                        <ArrowRightLeft className="w-4 h-4 text-sky-400" />
+                        Asignado en: Concurso de Traslado Definitivo (Sin reservas)
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-purple-950 text-purple-300 border border-purple-500/50">
+                        <GraduationCap className="w-4 h-4 text-purple-400" />
+                        Asignado en: Concurso de Ingreso a la Docencia (Admite reserva)
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               {(cargo.titular_nombre || cargo.estado === 'asignada' || cargo.estado === 'reservada') && (
@@ -212,6 +268,94 @@ export function CargoDetailModal({
 
           {isAdmin && (
             <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+              {/* Número de Orden */}
+              <div className="p-3.5 rounded-xl bg-slate-800/40 border border-slate-700/80 space-y-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <label htmlFor="cargo-orden-input" className="text-xs font-bold uppercase tracking-wider text-sky-300 block">
+                      N° de Orden (Acto Real)
+                    </label>
+                    <span className="text-[11px] text-slate-400">
+                      Podés corregirlo si difiere del listado oficial del acto.
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-slate-400 text-sm">N°</span>
+                    <input
+                      id="cargo-orden-input"
+                      type="number"
+                      min={1}
+                      step={1}
+                      value={ordenInput}
+                      onChange={(e) => setOrdenInput(e.target.value)}
+                      className="w-28 bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 font-mono font-black text-base text-white text-center focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                </div>
+
+                {!isOrdenValid && (
+                  <p className="text-xs text-rose-400 font-semibold">
+                    Ingresá un número de orden válido (entero mayor o igual a 1).
+                  </p>
+                )}
+
+                {conflictingCargo && (
+                  <div className="p-2.5 rounded-lg bg-amber-950/40 border border-amber-500/40 text-xs text-amber-200 space-y-2">
+                    <p>
+                      El <strong>N° {parsedOrden}</strong> actualmente pertenece a:{' '}
+                      <strong className="text-white">{conflictingCargo.nombre}</strong>
+                      {conflictingCargo.localidad ? ` (${conflictingCargo.localidad})` : ''}.
+                    </p>
+                    <label className="flex items-center gap-2 cursor-pointer select-none font-semibold text-amber-300">
+                      <input
+                        type="checkbox"
+                        checked={swapOrden}
+                        onChange={(e) => setSwapOrden(e.target.checked)}
+                        className="rounded border-amber-500 bg-slate-900 text-amber-500 focus:ring-amber-500"
+                      />
+                      Intercambiar números (ese cargo pasará al N° {cargo.orden})
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              {/* Selector de Concurso para esta adjudicación */}
+              <div className="space-y-1.5 p-3 rounded-xl bg-slate-800/40 border border-slate-700/80">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-300 block">
+                  Concurso de Adjudicación:
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConcursoAsignacion('traslado');
+                      if (estado === 'reservada') setEstado('asignada');
+                    }}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
+                      concursoAsignacion === 'traslado'
+                        ? 'bg-sky-600 text-white border-sky-400 shadow-md ring-2 ring-sky-400/40'
+                        : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                    }`}
+                  >
+                    <ArrowRightLeft className="w-3.5 h-3.5" />
+                    Traslado Definitivo (Sin reservas)
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setConcursoAsignacion('ingreso')}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
+                      concursoAsignacion === 'ingreso'
+                        ? 'bg-purple-600 text-white border-purple-400 shadow-md ring-2 ring-purple-400/40'
+                        : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                    }`}
+                  >
+                    <GraduationCap className="w-3.5 h-3.5" />
+                    Ingreso a la Docencia (Con reservas)
+                  </button>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-300 block">
                   Cambiar Estado del Cargo:
@@ -219,7 +363,13 @@ export function CargoDetailModal({
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <button
                     type="button"
-                    onClick={() => setEstado('disponible')}
+                    onClick={() => {
+                      setEstado('disponible');
+                      setTitularNombre('');
+                      setTitularDni('');
+                      setReservaNombre('');
+                      setReservaDni('');
+                    }}
                     className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
                       estado === 'disponible'
                         ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-md ring-2 ring-emerald-400/50'
@@ -243,9 +393,13 @@ export function CargoDetailModal({
 
                   <button
                     type="button"
+                    disabled={concursoAsignacion === 'traslado'}
                     onClick={() => setEstado('reservada')}
+                    title={concursoAsignacion === 'traslado' ? 'En Traslado Definitivo no se admiten reservas' : 'Asignar 2° aspirante en reserva'}
                     className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
-                      estado === 'reservada'
+                      concursoAsignacion === 'traslado'
+                        ? 'bg-slate-800/40 text-slate-500 border-slate-800 cursor-not-allowed opacity-50'
+                        : estado === 'reservada'
                         ? 'bg-rose-600 text-white border-rose-400 shadow-md ring-2 ring-rose-400/50'
                         : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
                     }`}
@@ -265,12 +419,17 @@ export function CargoDetailModal({
                     No Habilitada
                   </button>
                 </div>
+                {concursoAsignacion === 'traslado' && (
+                  <p className="text-[11px] text-sky-400 italic">
+                    * En el Concurso de Traslado Definitivo no se admiten reservas. El cargo queda cubierto con el titular.
+                  </p>
+                )}
               </div>
 
               {/* Titular */}
               <div className="p-4 rounded-xl border border-slate-800 bg-slate-800/30 space-y-3">
                 <span className="text-xs font-bold text-amber-400 uppercase tracking-wider block">
-                  1° Aspirante — Titular:
+                  Aspirante (Titular Adjudicado):
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
@@ -279,7 +438,13 @@ export function CargoDetailModal({
                       type="text"
                       placeholder="Ej. Gómez, María Laura"
                       value={titularNombre}
-                      onChange={(e) => setTitularNombre(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setTitularNombre(val);
+                        if (val.trim() !== '' && estado === 'disponible') {
+                          setEstado('asignada');
+                        }
+                      }}
                       className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
                     />
                   </div>
@@ -289,7 +454,13 @@ export function CargoDetailModal({
                       type="text"
                       placeholder="Ej. 28.450.912"
                       value={titularDni}
-                      onChange={(e) => setTitularDni(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setTitularDni(val);
+                        if (val.trim() !== '' && estado === 'disponible') {
+                          setEstado('asignada');
+                        }
+                      }}
                       className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
                     />
                   </div>
@@ -297,33 +468,54 @@ export function CargoDetailModal({
               </div>
 
               {/* Reserva */}
-              <div className="p-4 rounded-xl border border-slate-800 bg-slate-800/30 space-y-3">
-                <span className="text-xs font-bold text-rose-400 uppercase tracking-wider block">
-                  2° Aspirante — En Reserva:
-                </span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs text-slate-400 block mb-1">Nombre y Apellido</label>
-                    <input
-                      type="text"
-                      placeholder="Ej. Benítez, Clara Inés"
-                      value={reservaNombre}
-                      onChange={(e) => setReservaNombre(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-slate-400 block mb-1">DNI (opcional)</label>
-                    <input
-                      type="text"
-                      placeholder="Ej. 33.204.887"
-                      value={reservaDni}
-                      onChange={(e) => setReservaDni(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500"
-                    />
+              {concursoAsignacion === 'traslado' ? (
+                <div className="p-3.5 rounded-xl border border-sky-800/40 bg-sky-950/20 text-xs text-sky-300 flex items-center gap-2">
+                  <Ban className="w-4 h-4 text-sky-400 flex-shrink-0" />
+                  <span>
+                    <strong>Sin Reserva:</strong> Los cargos adjudicados en <em>Traslado Definitivo</em> están excluidos de reservas de aspirantes (Ley 647-E).
+                  </span>
+                </div>
+              ) : (
+                <div className="p-4 rounded-xl border border-slate-800 bg-slate-800/30 space-y-3">
+                  <span className="text-xs font-bold text-rose-400 uppercase tracking-wider block">
+                    Aspirante (Reserva):
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">Nombre y Apellido</label>
+                      <input
+                        type="text"
+                        placeholder="Ej. Benítez, Clara Inés"
+                        value={reservaNombre}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setReservaNombre(val);
+                          if (val.trim() !== '' && (estado === 'disponible' || estado === 'asignada')) {
+                            setEstado('reservada');
+                          }
+                        }}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">DNI (opcional)</label>
+                      <input
+                        type="text"
+                        placeholder="Ej. 33.204.887"
+                        value={reservaDni}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setReservaDni(val);
+                          if (val.trim() !== '' && (estado === 'disponible' || estado === 'asignada')) {
+                            setEstado('reservada');
+                          }
+                        }}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               <div>
                 <label className="text-xs text-slate-400 block mb-1">Observaciones del Acto</label>
@@ -346,7 +538,12 @@ export function CargoDetailModal({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-sm font-bold rounded-xl bg-sky-600 hover:bg-sky-500 text-white transition-colors flex items-center gap-2 shadow-lg shadow-sky-900/40"
+                  disabled={!canSubmitOrden}
+                  className={`px-5 py-2 text-sm font-bold rounded-xl transition-colors flex items-center gap-2 shadow-lg ${
+                    canSubmitOrden
+                      ? 'bg-sky-600 hover:bg-sky-500 text-white shadow-sky-900/40'
+                      : 'bg-slate-800 text-slate-500 cursor-not-allowed shadow-none'
+                  }`}
                 >
                   <Save className="w-4 h-4" />
                   Guardar Cambios

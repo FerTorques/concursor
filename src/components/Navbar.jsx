@@ -4,8 +4,6 @@ import {
   Tv, 
   TvMinimal, 
   Radio, 
-  Shield, 
-  BookOpen, 
   Volume2, 
   VolumeX
 } from 'lucide-react';
@@ -36,35 +34,34 @@ export function Navbar({
         : 'bg-slate-900/90 border-slate-800 py-3'
     }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
-        {/* Marca y Título Oficial */}
+        {/* Logo ACHABI en la esquina y Cabecera */}
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-sky-600/30 flex-shrink-0">
-            <BookOpen className="w-5 h-5 text-white" />
-          </div>
+          <img
+            src="/logo-achabi.png"
+            alt="Logo ACHABI - Asociación Chaqueña de Bibliotecarios"
+            className="w-16 h-16 rounded-full object-cover shadow-lg shadow-sky-600/30 flex-shrink-0 bg-white ring-2 ring-sky-400/40"
+          />
           <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-extrabold tracking-tight text-white text-base sm:text-lg truncate">
-                Concurso Bibliotecario N° 55 y N° 47
-              </span>
-              <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-sky-950 text-sky-400 border border-sky-800 uppercase tracking-wider">
-                Ley 647-E Art. 266
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 truncate">
-              Traslados, Reincorporaciones e Ingreso • Ministerio de Educación Chaco
+            <span className="font-extrabold tracking-tight text-white text-sm sm:text-base lg:text-lg block truncate">
+              ACHABI - PIZARRA DIGITAL DE CONCURSOS BIBLIOTECARIOS
+            </span>
+            <p className="text-xs text-slate-300 truncate">
+              Ascensos, Traslados, Reincorporaciones e Ingreso a la Docencia
             </p>
           </div>
         </div>
 
         {/* Acciones principales */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Indicador de Sincronización en Vivo */}
-          <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-800/80 border border-slate-700 text-slate-300">
-            <span className={`w-2 h-2 rounded-full ${isRealtimeConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
-            <span>
-              {usingSupabase ? 'En vivo (Supabase)' : 'En vivo (Red Local)'}
-            </span>
-          </div>
+          {/* Indicador de Sincronización en Vivo (solo en Admin) */}
+          {currentRoute !== '/' && (
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-800/80 border border-slate-700 text-slate-300">
+              <span className={`w-2 h-2 rounded-full ${isRealtimeConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+              <span>
+                {usingSupabase ? 'En vivo (Supabase)' : 'En vivo (Red Local)'}
+              </span>
+            </div>
+          )}
 
           {/* Botón de Sonido */}
           <button
@@ -98,16 +95,8 @@ export function Navbar({
             )}
           </button>
 
-          {/* Navegación entre Vista Pública y Admin */}
-          {currentRoute === '/' ? (
-            <button
-              onClick={() => onNavigate && onNavigate('/admin')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/40 transition-colors"
-            >
-              <Shield className="w-4 h-4" />
-              <span>Admin</span>
-            </button>
-          ) : (
+          {/* Enlace de regreso desde Admin a Pizarra Pública */}
+          {currentRoute !== '/' && (
             <button
               onClick={() => onNavigate && onNavigate('/')}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"

@@ -26,6 +26,11 @@ CREATE TABLE IF NOT EXISTS public.cargos (
     origen TEXT DEFAULT '',
     estado estado_cargo NOT NULL DEFAULT 'disponible',
     
+    -- Concurso en el cual se adjudicó la vacante:
+    -- 'traslado': Concurso de Traslado Definitivo (hasta 50% de vacantes, sin reservas)
+    -- 'ingreso': Concurso de Ingreso a la Docencia (vacantes restantes, admite reservas de cargos propios)
+    concurso_asignacion TEXT DEFAULT NULL,
+    
     -- Datos del 1° aspirante (Titular de la vacante)
     titular_nombre TEXT DEFAULT '',
     titular_dni TEXT DEFAULT '',
@@ -66,6 +71,7 @@ CREATE INDEX IF NOT EXISTS idx_cargos_orden ON public.cargos(orden);
 CREATE INDEX IF NOT EXISTS idx_cargos_estado ON public.cargos(estado);
 CREATE INDEX IF NOT EXISTS idx_cargos_region ON public.cargos(region);
 CREATE INDEX IF NOT EXISTS idx_cargos_localidad ON public.cargos(localidad);
+CREATE INDEX IF NOT EXISTS idx_cargos_concurso_asignacion ON public.cargos(concurso_asignacion);
 CREATE INDEX IF NOT EXISTS idx_cargos_updated_at ON public.cargos(updated_at DESC);
 
 -- 5. Trigger para actualizar automaticamente 'updated_at'

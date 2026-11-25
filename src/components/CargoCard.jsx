@@ -6,7 +6,9 @@ import {
   UserCheck, 
   Ban, 
   Sparkles, 
-  ShieldAlert
+  ShieldAlert,
+  ArrowRightLeft,
+  GraduationCap
 } from 'lucide-react';
 
 export function CargoCard({ 
@@ -29,6 +31,7 @@ export function CargoCard({
     localidad,
     origen,
     estado,
+    concurso_asignacion,
     titular_nombre,
     titular_dni,
     reserva_nombre,
@@ -38,11 +41,11 @@ export function CargoCard({
 
   const stateStyles = {
     no_habilitada: {
-      card: 'bg-slate-900/60 border-slate-700/60 opacity-60 text-slate-400 grayscale cursor-not-allowed',
-      badge: 'bg-slate-800 text-slate-400 border-slate-700',
-      badgeText: etiqueta_normativa || 'NO HABILITADA',
+      card: 'bg-slate-950 border-slate-800/30 opacity-30 text-slate-500 grayscale pointer-events-none cursor-not-allowed',
+      badge: 'bg-slate-900 text-slate-600 border-slate-800',
+      badgeText: etiqueta_normativa?.toLowerCase().includes('desafectada') ? 'DESAFECTADA' : 'NO HABILITADA',
       icon: Ban,
-      accent: 'border-l-4 border-l-slate-600'
+      accent: 'border-l-4 border-l-slate-800'
     },
     disponible: {
       card: 'bg-slate-800/90 hover:bg-slate-800/100 border-emerald-500/40 text-slate-100 hover:border-emerald-400/80 shadow-emerald-950/20 shadow-md',
@@ -53,15 +56,17 @@ export function CargoCard({
     },
     asignada: {
       card: 'bg-amber-950/40 hover:bg-amber-950/60 border-amber-500/70 text-amber-50 shadow-amber-950/30 shadow-lg ring-1 ring-amber-500/30',
-      badge: 'bg-amber-500 text-slate-950 font-black border-amber-400 animate-pulse-fast',
-      badgeText: 'ADJUDICADA — Disponible para 1 reserva',
+      badge: concurso_asignacion === 'traslado'
+        ? 'bg-sky-500 text-slate-950 font-black border-sky-400'
+        : 'bg-amber-500 text-slate-950 font-black border-amber-400 animate-pulse-fast',
+      badgeText: 'ADJUDICADA',
       icon: Clock,
-      accent: 'border-l-4 border-l-amber-400'
+      accent: concurso_asignacion === 'traslado' ? 'border-l-4 border-l-sky-400' : 'border-l-4 border-l-amber-400'
     },
     reservada: {
       card: 'bg-rose-950/50 hover:bg-rose-950/70 border-rose-500/80 text-rose-50 shadow-rose-950/40 shadow-lg ring-1 ring-rose-500/40',
       badge: 'bg-rose-600 text-white font-black border-rose-400 shadow-md',
-      badgeText: 'RESERVADA — Vacante completa (2° aspirante)',
+      badgeText: 'RESERVADA (Ingreso) — Vacante completa',
       icon: UserCheck,
       accent: 'border-l-4 border-l-rose-500'
     }
@@ -162,6 +167,23 @@ export function CargoCard({
         </div>
       )}
 
+      {/* Indicador del concurso en el que se asignó */}
+      {(estado === 'asignada' || estado === 'reservada') && concurso_asignacion && (
+        <div className="mb-2">
+          {concurso_asignacion === 'traslado' ? (
+            <span className="inline-flex items-center gap-1.5 text-xs font-black px-2.5 py-0.5 rounded-full bg-sky-950 text-sky-300 border border-sky-500/60 shadow-sm">
+              <ArrowRightLeft className="w-3.5 h-3.5 text-sky-400" />
+              Concurso de Traslado Definitivo
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 text-xs font-black px-2.5 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-500/60 shadow-sm">
+              <GraduationCap className="w-3.5 h-3.5 text-purple-400" />
+              Concurso de Ingreso a la Docencia
+            </span>
+          )}
+        </div>
+      )}
+
       {(estado === 'asignada' || estado === 'reservada') && (
         <div className={`mt-2 p-2.5 rounded-lg border flex flex-col gap-1.5 ${
           estado === 'asignada' ? 'bg-amber-950/40 border-amber-600/40 text-amber-100' : 'bg-rose-950/40 border-rose-600/40 text-rose-100'
@@ -214,12 +236,18 @@ export function CargoCard({
             )}
             {estado === 'asignada' && (
               <>
-                <button
-                  onClick={() => onQuickAction && onQuickAction(cargo, 'reservar')}
-                  className="px-2.5 py-1 text-xs font-bold rounded-lg bg-rose-600 hover:bg-rose-500 text-white transition-colors shadow-sm"
-                >
-                  Tomar Reserva
-                </button>
+                {concurso_asignacion === 'traslado' ? (
+                  <span className="text-[11px] font-semibold text-sky-300 bg-sky-950/80 px-2 py-1 rounded border border-sky-800">
+                    Sin reserva (Traslado)
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => onQuickAction && onQuickAction(cargo, 'reservar')}
+                    className="px-2.5 py-1 text-xs font-bold rounded-lg bg-rose-600 hover:bg-rose-500 text-white transition-colors shadow-sm"
+                  >
+                    Tomar Reserva
+                  </button>
+                )}
                 <button
                   onClick={() => onQuickAction && onQuickAction(cargo, 'liberar')}
                   className="px-2 py-1 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"

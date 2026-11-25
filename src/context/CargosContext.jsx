@@ -6,6 +6,7 @@ const CargosContext = createContext(null);
 
 const STORAGE_KEY = 'concursor_cargos_v1';
 const HISTORY_KEY = 'concursor_history_v1';
+const CONCURSO_STORAGE_KEY = 'concursor_active_concurso';
 const BROADCAST_CHANNEL_NAME = 'concursor_live_channel';
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -21,6 +22,7 @@ const CARGO_DB_FIELDS = [
   'localidad',
   'origen',
   'estado',
+  'concurso_asignacion',
   'titular_nombre',
   'titular_dni',
   'titular_puntaje',
@@ -80,6 +82,47 @@ export function CargosProvider({ children }) {
     }
   });
 
+  // Concurso activo de operación para el Administrador ('traslado' | 'ingreso')
+  // 1. Traslado Definitivo: hasta el 50% de las vacantes, no admite reservas.
+  // 2. Ingreso a la Docencia: vacantes restantes, admite reservas solo de cargos asignados en ingreso.
+  const [activeConcurso, setActiveConcursoState] = useState(() => {
+    try {
+      const saved = localStorage.getItem(CONCURSO_STORAGE_KEY);
+      return saved === 'ingreso' ? 'ingreso' : 'traslado';
+    } catch {
+      return 'traslado';
+    }
+  });
+
+  const setActiveConcurso = useCallback(async (nuevoConcurso) => {
+    if (nuevoConcurso !== 'traslado' && nuevoConcurso !== 'ingreso') return;
+    setActiveConcursoState(nuevoConcurso);
+    try {
+      localStorage.setItem(CONCURSO_STORAGE_KEY, nuevoConcurso);
+      if (broadcastRef.current) {
+        broadcastRef.current.postMessage({
+          type: 'CONCURSO_SWITCH',
+          payload: { activeConcurso: nuevoConcurso }
+        });
+      }
+    } catch (e) {
+      console.warn('Error al guardar concurso activo:', e);
+    }
+
+    if (usingSupabase && supabase) {
+      try {
+        await supabase
+          .from('concurso_config')
+          .upsert(
+            { key: 'active_concurso', value: nuevoConcurso, updated_at: new Date().toISOString() },
+            { onConflict: 'key' }
+          );
+      } catch (e) {
+        console.warn('No se pudo sincronizar concurso activo en Supabase:', e);
+      }
+    }
+  }, [usingSupabase]);
+
   const broadcastRef = useRef(null);
   const cargosRef = useRef([]);
 
@@ -99,6 +142,10 @@ export function CargosProvider({ children }) {
           setLastUpdateNotice(payload.notice);
         } else if (type === 'CARGOS_BATCH') {
           setCargos(payload.cargos);
+        } else if (type === 'CONCURSO_SWITCH') {
+          if (payload?.activeConcurso) {
+            setActiveConcursoState(payload.activeConcurso);
+          }
         }
       };
     } catch (e) {
@@ -201,6 +248,20 @@ export function CargosProvider({ children }) {
             setIsRealtimeConnected(true);
           }
 
+          try {
+            const { data: cfgData } = await supabase
+              .from('concurso_config')
+              .select('value')
+              .eq('key', 'active_concurso')
+              .maybeSingle();
+            if (cfgData?.value === 'traslado' || cfgData?.value === 'ingreso') {
+              setActiveConcursoState(cfgData.value);
+              localStorage.setItem(CONCURSO_STORAGE_KEY, cfgData.value);
+            }
+          } catch {
+            // Si aún no existe la tabla concurso_config, continuar con valor local
+          }
+
           subscription = supabase
             .channel('cargos-realtime')
             .on(
@@ -208,6 +269,21 @@ export function CargosProvider({ children }) {
               { event: '*', schema: 'public', table: SUPABASE_TABLE },
               (payload) => {
                 handleSupabaseChange(payload);
+              }
+            )
+            .on(
+              'postgres_changes',
+              { event: '*', schema: 'public', table: 'concurso_config' },
+              (payload) => {
+                const nextVal = payload.new?.value;
+                if (payload.new?.key === 'active_concurso' && (nextVal === 'traslado' || nextVal === 'ingreso')) {
+                  setActiveConcursoState(nextVal);
+                  try {
+                    localStorage.setItem(CONCURSO_STORAGE_KEY, nextVal);
+                  } catch {
+                    // Ignorar
+                  }
+                }
               }
             )
             .subscribe((status) => {
@@ -275,19 +351,71 @@ export function CargosProvider({ children }) {
     }
   }, [usingSupabase, sessionUser]);
 
-  const updateCargo = useCallback(async (cargoId, updateData) => {
+  const updateCargo = useCallback(async (cargoId, updateData, options = {}) => {
     const current = cargosRef.current.find(c => c.id === cargoId);
     if (!current) return false;
 
     const previousState = { ...current };
-    const targetOrden = current.orden;
+    const previousOrden = Number(previousState.orden);
+    const targetOrden = updateData.orden !== undefined ? Number(updateData.orden) : previousOrden;
+
+    if (!Number.isInteger(targetOrden) || targetOrden < 1) {
+      setError('El número de orden debe ser un entero mayor o igual a 1.');
+      return false;
+    }
+
+    const ordenChanged = targetOrden !== previousOrden;
+    const conflictingCargo = ordenChanged
+      ? cargosRef.current.find(c => c.id !== cargoId && Number(c.orden) === targetOrden)
+      : null;
+
+    if (conflictingCargo && !options.swapOrdenWithConflict) {
+      setError(`El N° de orden ${targetOrden} ya está asignado a "${conflictingCargo.nombre}". Activá el intercambio para reasignarlo.`);
+      return false;
+    }
+
+    // Determinar concurso_asignacion según la regla:
+    // Si pasa a asignada o reservada y no se especificó concurso, hereda el activeConcurso.
+    // Si pasa a disponible, se borra el concurso_asignacion.
+    let targetConcurso = updateData.concurso_asignacion !== undefined
+      ? updateData.concurso_asignacion
+      : previousState.concurso_asignacion;
+
+    const targetEstado = updateData.estado !== undefined ? updateData.estado : previousState.estado;
+
+    if (targetEstado === 'disponible') {
+      targetConcurso = null;
+    } else if ((targetEstado === 'asignada' || targetEstado === 'reservada') && !targetConcurso) {
+      targetConcurso = activeConcurso;
+    }
+
+    // Regla estricta de la Ley: en Traslado Definitivo NO se admiten reservas.
+    // Un cargo asignado en Traslado Definitivo queda expresamente excluido de reservas posteriores.
+    if (targetEstado === 'reservada' && targetConcurso === 'traslado') {
+      console.warn('Los cargos asignados en Concurso de Traslado no admiten reservas.');
+      return false;
+    }
+
+    const nowIso = new Date().toISOString();
+    const updatedBy = sessionUser?.email || previousState.updated_by || '';
 
     const mergedCargo = {
       ...previousState,
       ...updateData,
-      updated_at: new Date().toISOString(),
-      updated_by: sessionUser?.email || previousState.updated_by || ''
+      orden: targetOrden,
+      concurso_asignacion: targetConcurso,
+      updated_at: nowIso,
+      updated_by: updatedBy
     };
+
+    const swappedConflictCargo = conflictingCargo
+      ? {
+          ...conflictingCargo,
+          orden: previousOrden,
+          updated_at: nowIso,
+          updated_by: updatedBy
+        }
+      : null;
 
     const undoItem = {
       id: `undo-${Date.now()}`,
@@ -297,7 +425,9 @@ export function CargosProvider({ children }) {
       previousData: previousState,
       newData: mergedCargo,
       timestamp: Date.now(),
-      description: `Orden ${targetOrden}: ${previousState.estado} ➔ ${mergedCargo.estado}`
+      description: ordenChanged
+        ? `Orden ${previousOrden} ➔ ${targetOrden} (${mergedCargo.nombre})`
+        : `Orden ${targetOrden}: ${previousState.estado} ➔ ${mergedCargo.estado}`
     };
 
     const newUndoStack = [undoItem, ...undoStack.slice(0, 49)];
@@ -309,7 +439,13 @@ export function CargosProvider({ children }) {
     }
 
     setCargos((prev) => {
-      const updated = prev.map(c => c.id === cargoId ? mergedCargo : c);
+      const updated = sortByOrden(
+        prev.map(c => {
+          if (c.id === cargoId) return mergedCargo;
+          if (swappedConflictCargo && c.id === swappedConflictCargo.id) return swappedConflictCargo;
+          return c;
+        })
+      );
       if (!usingSupabase) {
         persistirLocal(updated, cargoId, {
           orden: targetOrden,
@@ -331,37 +467,94 @@ export function CargosProvider({ children }) {
 
     if (usingSupabase && supabase) {
       try {
-        const dbPayload = toSupabasePayload(mergedCargo);
-        const query = supabase.from(SUPABASE_TABLE).update(dbPayload);
-        const { data: savedRow, error: sbErr } = await (
-          UUID_REGEX.test(String(cargoId))
-            ? query.eq('id', cargoId)
-            : query.eq('orden', Number(targetOrden))
-        )
-          .select()
-          .single();
+        if (swappedConflictCargo) {
+          // Intercambio en 3 pasos para respetar el constraint UNIQUE(orden) en Supabase
+          const tempOrden = -Math.abs(Math.floor(Date.now() % 100000000) + previousOrden);
 
-        if (sbErr) {
-          console.error('Error al actualizar cargo en Supabase:', sbErr);
-          setError(sbErr.message);
-          setCargos((prev) => prev.map(c => c.id === cargoId ? previousState : c));
-          return false;
-        }
+          const { error: step1Err } = await supabase
+            .from(SUPABASE_TABLE)
+            .update({ orden: tempOrden })
+            .eq('id', cargoId);
 
-        if (savedRow) {
-          setCargos((prev) => prev.map(c => (c.id === cargoId || Number(c.orden) === Number(savedRow.orden)) ? savedRow : c));
-          setLastUpdatedId(savedRow.id);
-          await logHistorialSupabase(previousState, savedRow);
+          if (step1Err) throw step1Err;
+
+          const { data: savedConflictRow, error: step2Err } = await supabase
+            .from(SUPABASE_TABLE)
+            .update({ orden: previousOrden, updated_at: nowIso, updated_by: updatedBy })
+            .eq('id', swappedConflictCargo.id)
+            .select()
+            .single();
+
+          if (step2Err) {
+            await supabase.from(SUPABASE_TABLE).update({ orden: previousOrden }).eq('id', cargoId);
+            throw step2Err;
+          }
+
+          const dbPayload = toSupabasePayload(mergedCargo);
+          const { data: savedRow, error: step3Err } = await supabase
+            .from(SUPABASE_TABLE)
+            .update(dbPayload)
+            .eq('id', cargoId)
+            .select()
+            .single();
+
+          if (step3Err) throw step3Err;
+
+          setCargos((prev) =>
+            sortByOrden(
+              prev.map(c => {
+                if (savedRow && c.id === cargoId) return savedRow;
+                if (savedConflictRow && c.id === swappedConflictCargo.id) return savedConflictRow;
+                return c;
+              })
+            )
+          );
+          if (savedRow) {
+            setLastUpdatedId(savedRow.id);
+            await logHistorialSupabase(previousState, savedRow);
+          }
+        } else {
+          const dbPayload = toSupabasePayload(mergedCargo);
+          const query = supabase.from(SUPABASE_TABLE).update(dbPayload);
+          const { data: savedRow, error: sbErr } = await (
+            UUID_REGEX.test(String(cargoId))
+              ? query.eq('id', cargoId)
+              : query.eq('orden', previousOrden)
+          )
+            .select()
+            .single();
+
+          if (sbErr) {
+            console.error('Error al actualizar cargo en Supabase:', sbErr);
+            setError(sbErr.message);
+            setCargos((prev) => sortByOrden(prev.map(c => c.id === cargoId ? previousState : c)));
+            return false;
+          }
+
+          if (savedRow) {
+            setCargos((prev) => sortByOrden(prev.map(c => (c.id === cargoId || c.id === savedRow.id) ? savedRow : c)));
+            setLastUpdatedId(savedRow.id);
+            await logHistorialSupabase(previousState, savedRow);
+          }
         }
       } catch (err) {
         console.error('Fallo de red Supabase:', err);
         setError(err.message);
+        setCargos((prev) =>
+          sortByOrden(
+            prev.map(c => {
+              if (c.id === cargoId) return previousState;
+              if (conflictingCargo && c.id === conflictingCargo.id) return conflictingCargo;
+              return c;
+            })
+          )
+        );
         return false;
       }
     }
 
     return true;
-  }, [undoStack, usingSupabase, sessionUser, logHistorialSupabase]);
+  }, [undoStack, usingSupabase, sessionUser, logHistorialSupabase, activeConcurso]);
 
   const undoLastAction = useCallback(async () => {
     if (undoStack.length === 0) return false;
@@ -566,13 +759,38 @@ export function CargosProvider({ children }) {
     let asignadas = 0;
     let reservadas = 0;
     let noHabilitadas = 0;
+    let asignadasTraslado = 0;
+    let asignadasIngreso = 0;
+    let reservadasIngreso = 0;
 
     for (const c of cargos) {
-      if (c.estado === 'disponible') disponibles++;
-      else if (c.estado === 'asignada') asignadas++;
-      else if (c.estado === 'reservada') reservadas++;
-      else if (c.estado === 'no_habilitada') noHabilitadas++;
+      if (c.estado === 'disponible') {
+        disponibles++;
+      } else if (c.estado === 'asignada') {
+        asignadas++;
+        if (c.concurso_asignacion === 'traslado') {
+          asignadasTraslado++;
+        } else if (c.concurso_asignacion === 'ingreso') {
+          asignadasIngreso++;
+        }
+      } else if (c.estado === 'reservada') {
+        reservadas++;
+        if (c.concurso_asignacion === 'traslado') {
+          asignadasTraslado++;
+        } else {
+          asignadasIngreso++;
+          reservadasIngreso++;
+        }
+      } else if (c.estado === 'no_habilitada') {
+        noHabilitadas++;
+      }
     }
+
+    const habilitadasTotal = total - noHabilitadas;
+    // Hasta el 50% de la totalidad de los cargos disponibles se cubren en Traslado Definitivo
+    const cupoMaximoTraslado = Math.floor(habilitadasTotal * 0.5);
+    const cupoRestanteTraslado = Math.max(0, cupoMaximoTraslado - asignadasTraslado);
+    const isCupoTrasladoAlcanzado = asignadasTraslado >= cupoMaximoTraslado;
 
     return {
       total,
@@ -580,7 +798,13 @@ export function CargosProvider({ children }) {
       asignadas,
       reservadas,
       noHabilitadas,
-      habilitadasTotal: total - noHabilitadas
+      habilitadasTotal,
+      cupoMaximoTraslado,
+      asignadasTraslado,
+      cupoRestanteTraslado,
+      isCupoTrasladoAlcanzado,
+      asignadasIngreso,
+      reservadasIngreso
     };
   }, [cargos]);
 
@@ -595,6 +819,8 @@ export function CargosProvider({ children }) {
     isRealtimeConnected,
     usingSupabase,
     sessionUser,
+    activeConcurso,
+    setActiveConcurso,
     updateCargo,
     undoLastAction,
     batchSaveCargos,

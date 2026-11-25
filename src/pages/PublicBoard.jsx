@@ -12,17 +12,18 @@ import {
   Sparkles, 
   Layers, 
   CheckCircle2, 
-  Clock, 
   UserCheck, 
   Ban,
   Radio,
   X,
   LayoutGrid,
-  List
+  List,
+  ArrowRightLeft,
+  GraduationCap
 } from 'lucide-react';
 
 export function PublicBoard({ onNavigate }) {
-  const { cargos, loading, lastUpdatedId, lastUpdateNotice } = useCargos();
+  const { cargos, loading, lastUpdatedId, lastUpdateNotice, activeConcurso } = useCargos();
 
   // Estados de interfaz
   const [projectorMode, setProjectorMode] = useState(false);
@@ -61,8 +62,12 @@ export function PublicBoard({ onNavigate }) {
   // Filtrado reactivo en tiempo real
   const filteredCargos = useMemo(() => {
     return cargos.filter((c) => {
-      // Filtro de estado
-      if (selectedEstado !== 'todos' && c.estado !== selectedEstado) {
+      // Filtro de estado / concurso
+      if (selectedEstado === 'traslado') {
+        if (c.concurso_asignacion !== 'traslado' || c.estado === 'disponible') return false;
+      } else if (selectedEstado === 'ingreso') {
+        if (c.concurso_asignacion !== 'ingreso' || c.estado === 'disponible') return false;
+      } else if (selectedEstado !== 'todos' && c.estado !== selectedEstado) {
         return false;
       }
       // Filtro de región
@@ -145,8 +150,35 @@ export function PublicBoard({ onNavigate }) {
             }`}>
               Concurso de Traslados y Reincorporaciones N° 55 e Ingreso N° 47
             </h1>
-            <p className="text-sm text-slate-400 mt-1">
-              Cargos Bibliotecarios • Ley 647-E Art. 266 • Junta de Clasificación de Nivel Primario y Modalidades
+            <div className="mt-3">
+              {activeConcurso === 'traslado' ? (
+                <div className={`inline-flex items-center gap-3 px-4 py-2.5 rounded-2xl border-2 bg-gradient-to-r from-sky-600/30 via-sky-500/20 to-cyan-500/20 border-sky-400 text-white shadow-lg shadow-sky-900/40 ${
+                  projectorMode ? 'text-lg sm:text-xl font-extrabold px-5 py-3' : 'text-sm sm:text-base font-extrabold'
+                }`}>
+                  <span className="p-1.5 rounded-xl bg-sky-400 text-slate-950 flex-shrink-0 shadow-sm">
+                    <ArrowRightLeft className={projectorMode ? 'w-5 h-5' : 'w-4 h-4'} />
+                  </span>
+                  <span>
+                    <span className="text-sky-300 font-black uppercase tracking-wider mr-2">CONCURSO ACTIVO:</span>
+                    Concurso de Traslado Definitivo (Sin reservas)
+                  </span>
+                </div>
+              ) : (
+                <div className={`inline-flex items-center gap-3 px-4 py-2.5 rounded-2xl border-2 bg-gradient-to-r from-purple-600/30 via-purple-500/20 to-fuchsia-500/20 border-purple-400 text-white shadow-lg shadow-purple-900/40 ${
+                  projectorMode ? 'text-lg sm:text-xl font-extrabold px-5 py-3' : 'text-sm sm:text-base font-extrabold'
+                }`}>
+                  <span className="p-1.5 rounded-xl bg-purple-400 text-slate-950 flex-shrink-0 shadow-sm">
+                    <GraduationCap className={projectorMode ? 'w-5 h-5' : 'w-4 h-4'} />
+                  </span>
+                  <span>
+                    <span className="text-purple-300 font-black uppercase tracking-wider mr-2">CONCURSO ACTIVO:</span>
+                    Concurso de Ingreso a la Docencia (Con reservas)
+                  </span>
+                </div>
+              )}
+            </div>
+            <p className="text-sm text-slate-400 mt-2.5">
+              Cargos Bibliotecarios • Ley 647-E • Junta de Clasificación de Bibliotecas
             </p>
           </div>
 
@@ -248,8 +280,9 @@ export function PublicBoard({ onNavigate }) {
               {[
                 { id: 'todos', label: 'Todos', icon: Layers },
                 { id: 'disponible', label: 'Disponibles', icon: CheckCircle2, color: 'text-emerald-400' },
-                { id: 'asignada', label: 'Adjudicadas', icon: Clock, color: 'text-amber-400' },
-                { id: 'reservada', label: 'Completas / Reservadas', icon: UserCheck, color: 'text-rose-400' },
+                { id: 'traslado', label: 'Traslado Definitivo', icon: ArrowRightLeft, color: 'text-sky-400' },
+                { id: 'ingreso', label: 'Ingreso a la Docencia', icon: GraduationCap, color: 'text-purple-400' },
+                { id: 'reservada', label: 'Con Reserva', icon: UserCheck, color: 'text-rose-400' },
                 { id: 'no_habilitada', label: 'No Habilitadas', icon: Ban, color: 'text-slate-400' }
               ].map((btn) => {
                 const Icon = btn.icon;
@@ -337,6 +370,7 @@ export function PublicBoard({ onNavigate }) {
                   <th className="p-3">Localidad</th>
                   <th className="p-3">Región</th>
                   <th className="p-3">Estado</th>
+                  <th className="p-3">Concurso</th>
                   <th className="p-3">Titular</th>
                   <th className="p-3">Reserva</th>
                 </tr>
@@ -350,7 +384,7 @@ export function PublicBoard({ onNavigate }) {
                       onClick={() => setSelectedCargo(cargo)}
                       className={`hover:bg-slate-800/50 transition-colors cursor-pointer ${
                         isRecent ? 'bg-amber-500/10' : ''
-                      } ${cargo.estado === 'no_habilitada' ? 'opacity-60' : ''}`}
+                      } ${cargo.estado === 'no_habilitada' ? 'opacity-25 grayscale pointer-events-none' : ''}`}
                     >
                       <td className="p-3 text-center font-mono font-black text-sky-400 whitespace-nowrap">
                         N° {cargo.orden}
@@ -380,7 +414,7 @@ export function PublicBoard({ onNavigate }) {
                           cargo.estado === 'disponible'
                             ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50'
                             : cargo.estado === 'asignada'
-                            ? 'bg-amber-500 text-slate-950 border-amber-400'
+                            ? (cargo.concurso_asignacion === 'traslado' ? 'bg-sky-500 text-slate-950 border-sky-400' : 'bg-amber-500 text-slate-950 border-amber-400')
                             : cargo.estado === 'reservada'
                             ? 'bg-rose-600 text-white border-rose-500'
                             : 'bg-slate-800 text-slate-400 border-slate-700'
@@ -388,11 +422,26 @@ export function PublicBoard({ onNavigate }) {
                           {cargo.estado === 'disponible'
                             ? 'Disponible'
                             : cargo.estado === 'asignada'
-                            ? 'Adjudicada'
+                            ? (cargo.concurso_asignacion === 'traslado' ? 'Adjudicada' : 'Adjudicada')
                             : cargo.estado === 'reservada'
-                            ? 'Reservada'
+                            ? 'Reservada (Ingreso)'
                             : 'No Habilitada'}
                         </span>
+                      </td>
+                      <td className="p-3 whitespace-nowrap">
+                        {cargo.concurso_asignacion === 'traslado' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-sky-950 text-sky-300 border border-sky-500/50 shadow-sm">
+                            <ArrowRightLeft className="w-3 h-3 text-sky-400" />
+                            Traslado
+                          </span>
+                        ) : cargo.concurso_asignacion === 'ingreso' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-purple-950 text-purple-300 border border-purple-500/50 shadow-sm">
+                            <GraduationCap className="w-3 h-3 text-purple-400" />
+                            Ingreso
+                          </span>
+                        ) : (
+                          <span className="text-slate-500 font-mono text-[11px]">—</span>
+                        )}
                       </td>
                       <td className="p-3 font-mono text-amber-200 truncate max-w-[160px]">
                         {cargo.titular_nombre || '—'}
