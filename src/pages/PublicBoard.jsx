@@ -12,13 +12,14 @@ import {
   Sparkles, 
   Layers, 
   CheckCircle2, 
-  Clock, 
   UserCheck, 
   Ban,
   Radio,
   X,
   LayoutGrid,
-  List
+  List,
+  ArrowRightLeft,
+  GraduationCap
 } from 'lucide-react';
 
 export function PublicBoard({ onNavigate }) {
@@ -61,8 +62,12 @@ export function PublicBoard({ onNavigate }) {
   // Filtrado reactivo en tiempo real
   const filteredCargos = useMemo(() => {
     return cargos.filter((c) => {
-      // Filtro de estado
-      if (selectedEstado !== 'todos' && c.estado !== selectedEstado) {
+      // Filtro de estado / concurso
+      if (selectedEstado === 'traslado') {
+        if (c.concurso_asignacion !== 'traslado' || c.estado === 'disponible') return false;
+      } else if (selectedEstado === 'ingreso') {
+        if (c.concurso_asignacion !== 'ingreso' || c.estado === 'disponible') return false;
+      } else if (selectedEstado !== 'todos' && c.estado !== selectedEstado) {
         return false;
       }
       // Filtro de región
@@ -248,8 +253,9 @@ export function PublicBoard({ onNavigate }) {
               {[
                 { id: 'todos', label: 'Todos', icon: Layers },
                 { id: 'disponible', label: 'Disponibles', icon: CheckCircle2, color: 'text-emerald-400' },
-                { id: 'asignada', label: 'Asignadas', icon: Clock, color: 'text-amber-400' },
-                { id: 'reservada', label: 'Completas / Reservadas', icon: UserCheck, color: 'text-rose-400' },
+                { id: 'traslado', label: '1° Traslado Definitivo', icon: ArrowRightLeft, color: 'text-sky-400' },
+                { id: 'ingreso', label: '2° Ingreso a la Docencia', icon: GraduationCap, color: 'text-purple-400' },
+                { id: 'reservada', label: 'Con Reserva', icon: UserCheck, color: 'text-rose-400' },
                 { id: 'no_habilitada', label: 'No Habilitadas', icon: Ban, color: 'text-slate-400' }
               ].map((btn) => {
                 const Icon = btn.icon;
@@ -337,6 +343,7 @@ export function PublicBoard({ onNavigate }) {
                   <th className="p-3">Localidad</th>
                   <th className="p-3">Región</th>
                   <th className="p-3">Estado</th>
+                  <th className="p-3">Concurso</th>
                   <th className="p-3">1° Titular</th>
                   <th className="p-3">2° Reserva</th>
                 </tr>
@@ -380,7 +387,7 @@ export function PublicBoard({ onNavigate }) {
                           cargo.estado === 'disponible'
                             ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50'
                             : cargo.estado === 'asignada'
-                            ? 'bg-amber-500 text-slate-950 border-amber-400'
+                            ? (cargo.concurso_asignacion === 'traslado' ? 'bg-sky-500 text-slate-950 border-sky-400' : 'bg-amber-500 text-slate-950 border-amber-400')
                             : cargo.estado === 'reservada'
                             ? 'bg-rose-600 text-white border-rose-500'
                             : 'bg-slate-800 text-slate-400 border-slate-700'
@@ -388,11 +395,26 @@ export function PublicBoard({ onNavigate }) {
                           {cargo.estado === 'disponible'
                             ? 'Disponible'
                             : cargo.estado === 'asignada'
-                            ? 'Asignada'
+                            ? (cargo.concurso_asignacion === 'traslado' ? 'Asignada (Traslado)' : 'Asignada (Ingreso)')
                             : cargo.estado === 'reservada'
-                            ? 'Reservada'
+                            ? 'Reservada (Ingreso)'
                             : 'No Habilitada'}
                         </span>
+                      </td>
+                      <td className="p-3 whitespace-nowrap">
+                        {cargo.concurso_asignacion === 'traslado' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-sky-950 text-sky-300 border border-sky-500/50 shadow-sm">
+                            <ArrowRightLeft className="w-3 h-3 text-sky-400" />
+                            1° Traslado
+                          </span>
+                        ) : cargo.concurso_asignacion === 'ingreso' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-purple-950 text-purple-300 border border-purple-500/50 shadow-sm">
+                            <GraduationCap className="w-3 h-3 text-purple-400" />
+                            2° Ingreso
+                          </span>
+                        ) : (
+                          <span className="text-slate-500 font-mono text-[11px]">—</span>
+                        )}
                       </td>
                       <td className="p-3 font-mono text-amber-200 truncate max-w-[160px]">
                         {cargo.titular_nombre || '—'}

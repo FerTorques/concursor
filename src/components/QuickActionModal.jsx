@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, UserCheck, X, Check } from 'lucide-react';
+import { useCargos } from '../context/CargosContext';
+import { User, UserCheck, X, Check, ArrowRightLeft, GraduationCap } from 'lucide-react';
 
 export function QuickActionModal({
   isOpen,
@@ -8,6 +9,7 @@ export function QuickActionModal({
   onClose,
   onConfirm
 }) {
+  const { activeConcurso } = useCargos();
   const [nombre, setNombre] = useState('');
   const [dni, setDni] = useState('');
   const inputRef = useRef(null);
@@ -30,21 +32,31 @@ export function QuickActionModal({
       cargoId: cargo.id,
       actionType,
       nombre: nombre.trim(),
-      dni: dni.trim()
+      dni: dni.trim(),
+      concurso_asignacion: actionType === 'asignar' 
+        ? (cargo.concurso_asignacion || activeConcurso)
+        : cargo.concurso_asignacion
     });
     onClose();
   };
 
   const isAsignar = actionType === 'asignar';
+  const targetConcurso = isAsignar ? activeConcurso : cargo.concurso_asignacion;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
       <div className={`relative w-full max-w-md bg-slate-900 border rounded-2xl shadow-2xl p-6 ${
-        isAsignar ? 'border-amber-500/80' : 'border-rose-500/80'
+        isAsignar 
+          ? (targetConcurso === 'traslado' ? 'border-sky-500/80' : 'border-amber-500/80')
+          : 'border-rose-500/80'
       }`}>
         <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-800">
           <div className="flex items-center gap-2.5">
-            <div className={`p-2 rounded-xl ${isAsignar ? 'bg-amber-500/20 text-amber-400' : 'bg-rose-500/20 text-rose-400'}`}>
+            <div className={`p-2 rounded-xl ${
+              isAsignar 
+                ? (targetConcurso === 'traslado' ? 'bg-sky-500/20 text-sky-400' : 'bg-amber-500/20 text-amber-400')
+                : 'bg-rose-500/20 text-rose-400'
+            }`}>
               {isAsignar ? <User className="w-6 h-6" /> : <UserCheck className="w-6 h-6" />}
             </div>
             <div>
@@ -59,6 +71,25 @@ export function QuickActionModal({
           <button onClick={onClose} className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800">
             <X className="w-5 h-5" />
           </button>
+        </div>
+
+        {/* Indicador de Concurso activo */}
+        <div className="mb-4">
+          {targetConcurso === 'traslado' ? (
+            <div className="p-2.5 rounded-xl bg-sky-950/60 border border-sky-800/60 flex items-center gap-2 text-xs text-sky-300">
+              <ArrowRightLeft className="w-4 h-4 text-sky-400 flex-shrink-0" />
+              <span>
+                Operando en: <strong>1° Concurso de Traslado Definitivo</strong> (Sin reservas)
+              </span>
+            </div>
+          ) : (
+            <div className="p-2.5 rounded-xl bg-purple-950/60 border border-purple-800/60 flex items-center gap-2 text-xs text-purple-300">
+              <GraduationCap className="w-4 h-4 text-purple-400 flex-shrink-0" />
+              <span>
+                Operando en: <strong>2° Concurso de Ingreso a la Docencia</strong>
+              </span>
+            </div>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -101,7 +132,9 @@ export function QuickActionModal({
               type="submit"
               className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-lg ${
                 isAsignar
-                  ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-950/40'
+                  ? (targetConcurso === 'traslado' 
+                      ? 'bg-sky-600 hover:bg-sky-500 text-white shadow-sky-950/40' 
+                      : 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-950/40')
                   : 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-950/40'
               }`}
             >

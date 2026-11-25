@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useCargos } from '../context/CargosContext';
 import { 
   X, 
   MapPin, 
@@ -8,7 +9,9 @@ import {
   ShieldAlert, 
   Ban, 
   CheckCircle2,
-  Save
+  Save,
+  ArrowRightLeft,
+  GraduationCap
 } from 'lucide-react';
 
 export function CargoDetailModal({ 
@@ -18,7 +21,9 @@ export function CargoDetailModal({
   isAdmin = false,
   onSave
 }) {
+  const { activeConcurso } = useCargos();
   const [estado, setEstado] = useState('disponible');
+  const [concursoAsignacion, setConcursoAsignacion] = useState('traslado');
   const [titularNombre, setTitularNombre] = useState('');
   const [titularDni, setTitularDni] = useState('');
   const [reservaNombre, setReservaNombre] = useState('');
@@ -29,13 +34,14 @@ export function CargoDetailModal({
   useEffect(() => {
     if (cargo) {
       setEstado(cargo.estado || 'disponible');
+      setConcursoAsignacion(cargo.concurso_asignacion || activeConcurso || 'traslado');
       setTitularNombre(cargo.titular_nombre || '');
       setTitularDni(cargo.titular_dni || '');
       setReservaNombre(cargo.reserva_nombre || '');
       setReservaDni(cargo.reserva_dni || '');
       setObservaciones(cargo.observaciones || '');
     }
-  }, [cargo]);
+  }, [cargo, activeConcurso]);
 
   if (!isOpen || !cargo) return null;
 
@@ -43,12 +49,14 @@ export function CargoDetailModal({
     e.preventDefault();
     if (onSave) {
       const clearApplicants = estado === 'disponible';
+      const isTraslado = concursoAsignacion === 'traslado';
       onSave(cargo.id, {
         estado,
+        concurso_asignacion: clearApplicants ? null : concursoAsignacion,
         titular_nombre: clearApplicants ? '' : titularNombre,
         titular_dni: clearApplicants ? '' : titularDni,
-        reserva_nombre: clearApplicants ? '' : reservaNombre,
-        reserva_dni: clearApplicants ? '' : reservaDni,
+        reserva_nombre: (clearApplicants || isTraslado) ? '' : reservaNombre,
+        reserva_dni: (clearApplicants || isTraslado) ? '' : reservaDni,
         observaciones
       });
     }
@@ -164,6 +172,22 @@ export function CargoDetailModal({
                   {cargo.estado === 'no_habilitada' && <Ban className="w-4 h-4" />}
                   {cargo.estado}
                 </span>
+
+                {cargo.concurso_asignacion && (
+                  <div className="mt-2.5">
+                    {cargo.concurso_asignacion === 'traslado' ? (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-sky-950 text-sky-300 border border-sky-500/50">
+                        <ArrowRightLeft className="w-4 h-4 text-sky-400" />
+                        Asignado en: 1° Concurso de Traslado Definitivo (Sin reservas)
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-purple-950 text-purple-300 border border-purple-500/50">
+                        <GraduationCap className="w-4 h-4 text-purple-400" />
+                        Asignado en: 2° Concurso de Ingreso a la Docencia (Admite reserva)
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               {(cargo.titular_nombre || cargo.estado === 'asignada' || cargo.estado === 'reservada') && (
@@ -212,6 +236,43 @@ export function CargoDetailModal({
 
           {isAdmin && (
             <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+              {/* Selector de Concurso para esta adjudicación */}
+              <div className="space-y-1.5 p-3 rounded-xl bg-slate-800/40 border border-slate-700/80">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-300 block">
+                  Concurso de Adjudicación:
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConcursoAsignacion('traslado');
+                      if (estado === 'reservada') setEstado('asignada');
+                    }}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
+                      concursoAsignacion === 'traslado'
+                        ? 'bg-sky-600 text-white border-sky-400 shadow-md ring-2 ring-sky-400/40'
+                        : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                    }`}
+                  >
+                    <ArrowRightLeft className="w-3.5 h-3.5" />
+                    1° Traslado Definitivo (Sin reservas)
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setConcursoAsignacion('ingreso')}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
+                      concursoAsignacion === 'ingreso'
+                        ? 'bg-purple-600 text-white border-purple-400 shadow-md ring-2 ring-purple-400/40'
+                        : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                    }`}
+                  >
+                    <GraduationCap className="w-3.5 h-3.5" />
+                    2° Ingreso a la Docencia (Con reservas)
+                  </button>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-300 block">
                   Cambiar Estado del Cargo:
@@ -243,9 +304,13 @@ export function CargoDetailModal({
 
                   <button
                     type="button"
+                    disabled={concursoAsignacion === 'traslado'}
                     onClick={() => setEstado('reservada')}
+                    title={concursoAsignacion === 'traslado' ? 'En Traslado Definitivo no se admiten reservas' : 'Asignar 2° aspirante en reserva'}
                     className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
-                      estado === 'reservada'
+                      concursoAsignacion === 'traslado'
+                        ? 'bg-slate-800/40 text-slate-500 border-slate-800 cursor-not-allowed opacity-50'
+                        : estado === 'reservada'
                         ? 'bg-rose-600 text-white border-rose-400 shadow-md ring-2 ring-rose-400/50'
                         : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
                     }`}
@@ -265,6 +330,11 @@ export function CargoDetailModal({
                     No Habilitada
                   </button>
                 </div>
+                {concursoAsignacion === 'traslado' && (
+                  <p className="text-[11px] text-sky-400 italic">
+                    * En el Concurso de Traslado Definitivo no se admiten reservas. El cargo queda cubierto con el titular.
+                  </p>
+                )}
               </div>
 
               {/* Titular */}
@@ -297,33 +367,42 @@ export function CargoDetailModal({
               </div>
 
               {/* Reserva */}
-              <div className="p-4 rounded-xl border border-slate-800 bg-slate-800/30 space-y-3">
-                <span className="text-xs font-bold text-rose-400 uppercase tracking-wider block">
-                  2° Aspirante — En Reserva:
-                </span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs text-slate-400 block mb-1">Nombre y Apellido</label>
-                    <input
-                      type="text"
-                      placeholder="Ej. Benítez, Clara Inés"
-                      value={reservaNombre}
-                      onChange={(e) => setReservaNombre(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-slate-400 block mb-1">DNI (opcional)</label>
-                    <input
-                      type="text"
-                      placeholder="Ej. 33.204.887"
-                      value={reservaDni}
-                      onChange={(e) => setReservaDni(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500"
-                    />
+              {concursoAsignacion === 'traslado' ? (
+                <div className="p-3.5 rounded-xl border border-sky-800/40 bg-sky-950/20 text-xs text-sky-300 flex items-center gap-2">
+                  <Ban className="w-4 h-4 text-sky-400 flex-shrink-0" />
+                  <span>
+                    <strong>Sin Reserva:</strong> Los cargos adjudicados en <em>Traslado Definitivo</em> están excluidos de reservas de aspirantes (Ley 647-E Art. 266).
+                  </span>
+                </div>
+              ) : (
+                <div className="p-4 rounded-xl border border-slate-800 bg-slate-800/30 space-y-3">
+                  <span className="text-xs font-bold text-rose-400 uppercase tracking-wider block">
+                    2° Aspirante — En Reserva (Ingreso):
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">Nombre y Apellido</label>
+                      <input
+                        type="text"
+                        placeholder="Ej. Benítez, Clara Inés"
+                        value={reservaNombre}
+                        onChange={(e) => setReservaNombre(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">DNI (opcional)</label>
+                      <input
+                        type="text"
+                        placeholder="Ej. 33.204.887"
+                        value={reservaDni}
+                        onChange={(e) => setReservaDni(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               <div>
                 <label className="text-xs text-slate-400 block mb-1">Observaciones del Acto</label>

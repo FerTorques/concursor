@@ -6,6 +6,7 @@ const CargosContext = createContext(null);
 
 const STORAGE_KEY = 'concursor_cargos_v1';
 const HISTORY_KEY = 'concursor_history_v1';
+const CONCURSO_STORAGE_KEY = 'concursor_active_concurso';
 const BROADCAST_CHANNEL_NAME = 'concursor_live_channel';
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -21,6 +22,7 @@ const CARGO_DB_FIELDS = [
   'localidad',
   'origen',
   'estado',
+  'concurso_asignacion',
   'titular_nombre',
   'titular_dni',
   'titular_puntaje',
@@ -80,6 +82,34 @@ export function CargosProvider({ children }) {
     }
   });
 
+  // Concurso activo de operación para el Administrador ('traslado' | 'ingreso')
+  // 1. Traslado Definitivo: hasta el 50% de las vacantes, no admite reservas.
+  // 2. Ingreso a la Docencia: vacantes restantes, admite reservas solo de cargos asignados en ingreso.
+  const [activeConcurso, setActiveConcursoState] = useState(() => {
+    try {
+      const saved = localStorage.getItem(CONCURSO_STORAGE_KEY);
+      return saved === 'ingreso' ? 'ingreso' : 'traslado';
+    } catch {
+      return 'traslado';
+    }
+  });
+
+  const setActiveConcurso = useCallback((nuevoConcurso) => {
+    if (nuevoConcurso !== 'traslado' && nuevoConcurso !== 'ingreso') return;
+    setActiveConcursoState(nuevoConcurso);
+    try {
+      localStorage.setItem(CONCURSO_STORAGE_KEY, nuevoConcurso);
+      if (broadcastRef.current) {
+        broadcastRef.current.postMessage({
+          type: 'CONCURSO_SWITCH',
+          payload: { activeConcurso: nuevoConcurso }
+        });
+      }
+    } catch (e) {
+      console.warn('Error al guardar concurso activo:', e);
+    }
+  }, []);
+
   const broadcastRef = useRef(null);
   const cargosRef = useRef([]);
 
@@ -99,6 +129,10 @@ export function CargosProvider({ children }) {
           setLastUpdateNotice(payload.notice);
         } else if (type === 'CARGOS_BATCH') {
           setCargos(payload.cargos);
+        } else if (type === 'CONCURSO_SWITCH') {
+          if (payload?.activeConcurso) {
+            setActiveConcursoState(payload.activeConcurso);
+          }
         }
       };
     } catch (e) {
@@ -282,9 +316,32 @@ export function CargosProvider({ children }) {
     const previousState = { ...current };
     const targetOrden = current.orden;
 
+    // Determinar concurso_asignacion según la regla:
+    // Si pasa a asignada o reservada y no se especificó concurso, hereda el activeConcurso.
+    // Si pasa a disponible, se borra el concurso_asignacion.
+    let targetConcurso = updateData.concurso_asignacion !== undefined
+      ? updateData.concurso_asignacion
+      : previousState.concurso_asignacion;
+
+    const targetEstado = updateData.estado !== undefined ? updateData.estado : previousState.estado;
+
+    if (targetEstado === 'disponible') {
+      targetConcurso = null;
+    } else if ((targetEstado === 'asignada' || targetEstado === 'reservada') && !targetConcurso) {
+      targetConcurso = activeConcurso;
+    }
+
+    // Regla estricta de la Ley: en Traslado Definitivo NO se admiten reservas.
+    // Un cargo asignado en Traslado Definitivo queda expresamente excluido de reservas posteriores.
+    if (targetEstado === 'reservada' && targetConcurso === 'traslado') {
+      console.warn('Los cargos asignados en Concurso de Traslado no admiten reservas.');
+      return false;
+    }
+
     const mergedCargo = {
       ...previousState,
       ...updateData,
+      concurso_asignacion: targetConcurso,
       updated_at: new Date().toISOString(),
       updated_by: sessionUser?.email || previousState.updated_by || ''
     };
@@ -361,7 +418,7 @@ export function CargosProvider({ children }) {
     }
 
     return true;
-  }, [undoStack, usingSupabase, sessionUser, logHistorialSupabase]);
+  }, [undoStack, usingSupabase, sessionUser, logHistorialSupabase, activeConcurso]);
 
   const undoLastAction = useCallback(async () => {
     if (undoStack.length === 0) return false;
@@ -566,13 +623,38 @@ export function CargosProvider({ children }) {
     let asignadas = 0;
     let reservadas = 0;
     let noHabilitadas = 0;
+    let asignadasTraslado = 0;
+    let asignadasIngreso = 0;
+    let reservadasIngreso = 0;
 
     for (const c of cargos) {
-      if (c.estado === 'disponible') disponibles++;
-      else if (c.estado === 'asignada') asignadas++;
-      else if (c.estado === 'reservada') reservadas++;
-      else if (c.estado === 'no_habilitada') noHabilitadas++;
+      if (c.estado === 'disponible') {
+        disponibles++;
+      } else if (c.estado === 'asignada') {
+        asignadas++;
+        if (c.concurso_asignacion === 'traslado') {
+          asignadasTraslado++;
+        } else if (c.concurso_asignacion === 'ingreso') {
+          asignadasIngreso++;
+        }
+      } else if (c.estado === 'reservada') {
+        reservadas++;
+        if (c.concurso_asignacion === 'traslado') {
+          asignadasTraslado++;
+        } else {
+          asignadasIngreso++;
+          reservadasIngreso++;
+        }
+      } else if (c.estado === 'no_habilitada') {
+        noHabilitadas++;
+      }
     }
+
+    const habilitadasTotal = total - noHabilitadas;
+    // Hasta el 50% de la totalidad de los cargos disponibles se cubren en Traslado Definitivo
+    const cupoMaximoTraslado = Math.floor(habilitadasTotal * 0.5);
+    const cupoRestanteTraslado = Math.max(0, cupoMaximoTraslado - asignadasTraslado);
+    const isCupoTrasladoAlcanzado = asignadasTraslado >= cupoMaximoTraslado;
 
     return {
       total,
@@ -580,7 +662,13 @@ export function CargosProvider({ children }) {
       asignadas,
       reservadas,
       noHabilitadas,
-      habilitadasTotal: total - noHabilitadas
+      habilitadasTotal,
+      cupoMaximoTraslado,
+      asignadasTraslado,
+      cupoRestanteTraslado,
+      isCupoTrasladoAlcanzado,
+      asignadasIngreso,
+      reservadasIngreso
     };
   }, [cargos]);
 
@@ -595,6 +683,8 @@ export function CargosProvider({ children }) {
     isRealtimeConnected,
     usingSupabase,
     sessionUser,
+    activeConcurso,
+    setActiveConcurso,
     updateCargo,
     undoLastAction,
     batchSaveCargos,
