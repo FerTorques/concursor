@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useCargos } from '../context/CargosContext';
 import { Navbar } from '../components/Navbar';
 import { StatCounters } from '../components/StatCounters';
@@ -60,6 +60,26 @@ export function AdminDashboard({ onNavigate }) {
   });
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [undoNotice, setUndoNotice] = useState(null);
+  const searchInputRef = useRef(null);
+
+  const focusSearchInput = (selectText = false) => {
+    setTimeout(() => {
+      const input = searchInputRef.current;
+      if (input) {
+        input.focus();
+        if (selectText && input.value) {
+          input.select();
+        }
+      }
+    }, 60);
+  };
+
+  // Hacer focus automático en el buscador al abrir la página de Admin
+  useEffect(() => {
+    if (sessionUser) {
+      focusSearchInput(false);
+    }
+  }, [sessionUser]);
 
   // Lista de regiones únicas
   const regionesDisponibles = useMemo(() => {
@@ -131,12 +151,14 @@ export function AdminDashboard({ onNavigate }) {
         reserva_dni: ''
       });
       if (soundEnabled) playChime('success');
+      focusSearchInput(true);
     } else if (action === 'habilitar') {
       updateCargo(cargo.id, {
         estado: 'disponible',
         concurso_asignacion: null
       });
       if (soundEnabled) playChime('success');
+      focusSearchInput(true);
     }
   };
 
@@ -158,6 +180,7 @@ export function AdminDashboard({ onNavigate }) {
       });
       if (soundEnabled) playChime('reserve');
     }
+    focusSearchInput(true);
   };
 
   // Deshacer último cambio con aviso visual
@@ -437,28 +460,43 @@ export function AdminDashboard({ onNavigate }) {
 
         <StatCounters projectorMode={false} />
 
-        <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
-            <div className="md:col-span-5 relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+        <div className="p-4 sm:p-5 rounded-2xl bg-slate-900 border border-slate-700/80 shadow-xl space-y-4">
+          {/* Buscador destacado de cargos */}
+          <div className="space-y-1.5">
+            <label htmlFor="admin-cargo-search" className="text-xs font-black uppercase tracking-wider text-sky-400 flex items-center gap-1.5">
+              <Search className="w-3.5 h-3.5" />
+              Buscador Rápido de Cargos
+            </label>
+            <div className="relative">
+              <Search className="w-6 h-6 text-sky-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
+                id="admin-cargo-search"
+                ref={searchInputRef}
                 type="text"
-                placeholder="Buscar por orden, biblioteca, localidad, B.P. o titular..."
+                autoFocus
+                placeholder="Buscar por N° orden, biblioteca, localidad, B.P. o titular..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
+                className="w-full bg-slate-950 border-2 border-sky-500/50 rounded-2xl pl-14 pr-12 py-4 text-base sm:text-xl font-semibold text-white placeholder-slate-400 shadow-lg shadow-sky-950/30 focus:outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-500/25 transition-all"
               />
               {searchTerm && (
                 <button
-                  onClick={() => setSearchTerm('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm('');
+                    focusSearchInput(false);
+                  }}
+                  title="Limpiar búsqueda"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-5 h-5" />
                 </button>
               )}
             </div>
+          </div>
 
-            <div className="md:col-span-4">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+            <div className="md:col-span-7">
               <select
                 value={selectedRegion}
                 onChange={(e) => setSelectedRegion(e.target.value)}
@@ -471,7 +509,7 @@ export function AdminDashboard({ onNavigate }) {
               </select>
             </div>
 
-            <div className="md:col-span-3 flex items-center justify-end gap-2">
+            <div className="md:col-span-5 flex items-center justify-end gap-2">
               <div className="flex items-center p-1 rounded-xl bg-slate-950 border border-slate-800">
                 <button
                   onClick={() => setViewMode('cards')}
@@ -690,14 +728,20 @@ export function AdminDashboard({ onNavigate }) {
         isOpen={quickActionState.isOpen}
         cargo={quickActionState.cargo}
         actionType={quickActionState.actionType}
-        onClose={() => setQuickActionState({ isOpen: false, cargo: null, actionType: 'asignar' })}
+        onClose={() => {
+          setQuickActionState({ isOpen: false, cargo: null, actionType: 'asignar' });
+          focusSearchInput(true);
+        }}
         onConfirm={handleConfirmQuickModal}
       />
 
       <CargoDetailModal
         cargo={selectedCargoForDetail}
         isOpen={Boolean(selectedCargoForDetail)}
-        onClose={() => setSelectedCargoForDetail(null)}
+        onClose={() => {
+          setSelectedCargoForDetail(null);
+          focusSearchInput(true);
+        }}
         isAdmin={true}
         onSave={async (cargoId, updateData, options) => {
           const ok = await updateCargo(cargoId, updateData, options);
@@ -706,6 +750,7 @@ export function AdminDashboard({ onNavigate }) {
             else if (updateData.estado === 'asignada') playChime('assign');
             else playChime('success');
           }
+          focusSearchInput(true);
         }}
       />
 
