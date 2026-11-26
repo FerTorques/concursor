@@ -202,7 +202,11 @@ export function CargoDetailModal({
                   {cargo.estado === 'asignada' && <Clock className="w-4 h-4" />}
                   {cargo.estado === 'reservada' && <UserCheck className="w-4 h-4" />}
                   {cargo.estado === 'no_habilitada' && <Ban className="w-4 h-4" />}
-                  {cargo.estado === 'asignada' ? 'Adjudicada' : cargo.estado}
+                  {cargo.estado === 'asignada'
+                    ? 'Adjudicada'
+                    : cargo.estado === 'reservada' && cargo.concurso_asignacion === 'ingreso'
+                    ? 'Adjudicada y reservada'
+                    : cargo.estado}
                 </span>
 
                 {cargo.concurso_asignacion && (
