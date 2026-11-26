@@ -77,7 +77,7 @@ export function StatCounters({ projectorMode = false }) {
           <div className="flex items-center gap-2">
             <span className="font-bold text-sky-400">Cupo Traslado Definitivo (50% max):</span>
             <span className="font-mono text-slate-300">
-              <strong>{stats.asignadasTraslado}</strong> de <strong>{stats.cupoMaximoTraslado}</strong> cargos asignados ({porcentajeTraslado}%)
+              <strong>{stats.asignadasTraslado}</strong> de <strong>{stats.cupoMaximoTraslado}</strong> cargos adjudicados ({porcentajeTraslado}%)
             </span>
           </div>
           <div className="flex items-center gap-2 flex-1 max-w-xs sm:ml-4">

@@ -66,7 +66,7 @@ export function CargoCard({
     reservada: {
       card: 'bg-rose-950/50 hover:bg-rose-950/70 border-rose-500/80 text-rose-50 shadow-rose-950/40 shadow-lg ring-1 ring-rose-500/40',
       badge: 'bg-rose-600 text-white font-black border-rose-400 shadow-md',
-      badgeText: 'RESERVADA (Ingreso) — Vacante completa',
+      badgeText: 'RESERVADA',
       icon: UserCheck,
       accent: 'border-l-4 border-l-rose-500'
     }
@@ -85,7 +85,7 @@ export function CargoCard({
       {isRecentlyUpdated && (
         <div className="absolute -top-3 -right-2 bg-gradient-to-r from-yellow-400 to-amber-500 text-slate-950 font-extrabold text-xs px-3 py-0.5 rounded-full shadow-lg flex items-center gap-1 animate-bounce">
           <Sparkles className="w-3.5 h-3.5 fill-current" />
-          ¡ÚLTIMA ASIGNACIÓN!
+          ¡ÚLTIMA ADJUDICACIÓN!
         </div>
       )}
 
@@ -193,7 +193,7 @@ export function CargoCard({
               <User className="w-4 h-4 text-amber-400 flex-shrink-0" />
               <span className="text-xs font-bold uppercase tracking-wider text-amber-300">Titular:</span>
               <span className={`font-mono font-bold truncate ${projectorMode ? 'text-lg text-white' : 'text-sm text-slate-100'}`}>
-                {titular_nombre || 'Asignado (Sin nombre)'}
+                {titular_nombre || 'Adjudicado (Sin nombre)'}
               </span>
             </div>
             {titular_dni && (
@@ -231,7 +231,7 @@ export function CargoCard({
                 onClick={() => onQuickAction && onQuickAction(cargo, 'asignar')}
                 className="px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 transition-colors shadow-sm"
               >
-                Asignar Titular
+                Adjudicar Titular
               </button>
             )}
             {estado === 'asignada' && (

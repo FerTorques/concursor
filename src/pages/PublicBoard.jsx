@@ -424,7 +424,7 @@ export function PublicBoard({ onNavigate }) {
                             : cargo.estado === 'asignada'
                             ? (cargo.concurso_asignacion === 'traslado' ? 'Adjudicada' : 'Adjudicada')
                             : cargo.estado === 'reservada'
-                            ? 'Reservada (Ingreso)'
+                            ? 'RESERVADA'
                             : 'No Habilitada'}
                         </span>
                       </td>

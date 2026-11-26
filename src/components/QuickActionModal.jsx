@@ -61,7 +61,7 @@ export function QuickActionModal({
             </div>
             <div>
               <h3 className="font-extrabold text-white text-base">
-                {isAsignar ? 'Asignar Titular (1° Aspirante)' : 'Registrar Reserva (2° Aspirante)'}
+                {isAsignar ? 'Adjudicar Titular (1° Aspirante)' : 'Registrar Reserva (2° Aspirante)'}
               </h3>
               <p className="text-xs text-slate-400">
                 Orden <strong className="text-white font-mono">N° {cargo.orden}</strong> • {cargo.nombre}
@@ -139,7 +139,7 @@ export function QuickActionModal({
               }`}
             >
               <Check className="w-4 h-4 stroke-[3]" />
-              {isAsignar ? 'Confirmar Asignación' : 'Completar Reserva'}
+              {isAsignar ? 'Confirmar Adjudicación' : 'Completar Reserva'}
             </button>
           </div>
         </form>

@@ -132,7 +132,7 @@ export function AdminDashboard({ onNavigate }) {
       });
     } else if (action === 'reservar') {
       if (cargo.concurso_asignacion === 'traslado') {
-        setUndoNotice('Los cargos asignados en Traslado Definitivo no admiten reservas reglamentariamente (Ley 647-E).');
+        setUndoNotice('Los cargos adjudicados en Traslado Definitivo no admiten reservas reglamentariamente (Ley 647-E).');
         setTimeout(() => setUndoNotice(null), 4000);
         return;
       }
@@ -259,7 +259,7 @@ export function AdminDashboard({ onNavigate }) {
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
-              Gestor de Vacantes y Asignaciones en Tiempo Real
+              Gestor de Vacantes y Adjudicaciones en Tiempo Real
             </h1>
             <p className="text-xs text-slate-400 mt-1">
               Concurso N° 55 (Traslado Definitivo) y Concurso N° 47 (Ingreso a la Docencia) • Ley 647-E
@@ -324,7 +324,7 @@ export function AdminDashboard({ onNavigate }) {
                 Configuración del Concurso en Operación:
               </span>
               <p className="text-xs text-slate-400 mt-0.5">
-                Seleccione el concurso activo para registrar asignaciones y reservas según las reglas normativas.
+                Seleccione el concurso activo para registrar adjudicaciones y reservas según las reglas normativas.
               </p>
             </div>
             <div className="flex items-center gap-1.5">
@@ -377,7 +377,7 @@ export function AdminDashboard({ onNavigate }) {
 
               <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-xs">
                 <span className="text-slate-400">
-                  Cupo asignado: <strong className="text-white font-mono">{stats.asignadasTraslado}</strong> / {stats.cupoMaximoTraslado} ({stats.cupoRestanteTraslado} restan)
+                  Cupo adjudicado: <strong className="text-white font-mono">{stats.asignadasTraslado}</strong> / {stats.cupoMaximoTraslado} ({stats.cupoRestanteTraslado} restan)
                 </span>
                 <span className="font-semibold text-rose-300 text-[11px]">
                   • Sin reservas
@@ -673,7 +673,7 @@ export function AdminDashboard({ onNavigate }) {
                             onClick={() => handleQuickAction(cargo, 'asignar')}
                             className="px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 transition-colors"
                           >
-                            Asignar
+                            Adjudicar
                           </button>
                         )}
                         {cargo.estado === 'asignada' && (

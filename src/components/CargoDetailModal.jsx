@@ -210,12 +210,12 @@ export function CargoDetailModal({
                     {cargo.concurso_asignacion === 'traslado' ? (
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-sky-950 text-sky-300 border border-sky-500/50">
                         <ArrowRightLeft className="w-4 h-4 text-sky-400" />
-                        Asignado en: Concurso de Traslado Definitivo (Sin reservas)
+                        Adjudicado en: Concurso de Traslado Definitivo (Sin reservas)
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-purple-950 text-purple-300 border border-purple-500/50">
                         <GraduationCap className="w-4 h-4 text-purple-400" />
-                        Asignado en: Concurso de Ingreso a la Docencia (Admite reserva)
+                        Adjudicado en: Concurso de Ingreso a la Docencia (Admite reserva)
                       </span>
                     )}
                   </div>
@@ -231,7 +231,7 @@ export function CargoDetailModal({
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
                       <span className="text-xs text-slate-400 block">Nombre Completo</span>
-                      <span className="font-mono font-bold text-white">{cargo.titular_nombre || 'Asignado'}</span>
+                      <span className="font-mono font-bold text-white">{cargo.titular_nombre || 'Adjudicado'}</span>
                     </div>
                     {cargo.titular_dni && (
                       <div>
@@ -395,7 +395,7 @@ export function CargoDetailModal({
                     type="button"
                     disabled={concursoAsignacion === 'traslado'}
                     onClick={() => setEstado('reservada')}
-                    title={concursoAsignacion === 'traslado' ? 'En Traslado Definitivo no se admiten reservas' : 'Asignar 2° aspirante en reserva'}
+                    title={concursoAsignacion === 'traslado' ? 'En Traslado Definitivo no se admiten reservas' : 'Adjudicar 2° aspirante en reserva'}
                     className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
                       concursoAsignacion === 'traslado'
                         ? 'bg-slate-800/40 text-slate-500 border-slate-800 cursor-not-allowed opacity-50'
@@ -521,7 +521,7 @@ export function CargoDetailModal({
                 <label className="text-xs text-slate-400 block mb-1">Observaciones del Acto</label>
                 <input
                   type="text"
-                  placeholder="Detalles sobre la asignación..."
+                  placeholder="Detalles sobre la adjudicación..."
                   value={observaciones}
                   onChange={(e) => setObservaciones(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-500"
