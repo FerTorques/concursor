@@ -93,10 +93,20 @@ export function CargosProvider({ children }) {
       return 'traslado';
     }
   });
+  const [hasRemoteConcursoConfig, setHasRemoteConcursoConfig] = useState(false);
+  const [hasLocalAdminOverride, setHasLocalAdminOverride] = useState(() => {
+    try {
+      const saved = localStorage.getItem(CONCURSO_STORAGE_KEY);
+      return saved === 'ingreso' || saved === 'traslado';
+    } catch {
+      return false;
+    }
+  });
 
   const setActiveConcurso = useCallback(async (nuevoConcurso) => {
     if (nuevoConcurso !== 'traslado' && nuevoConcurso !== 'ingreso') return;
     setActiveConcursoState(nuevoConcurso);
+    setHasLocalAdminOverride(true);
     try {
       localStorage.setItem(CONCURSO_STORAGE_KEY, nuevoConcurso);
       if (broadcastRef.current) {
@@ -111,12 +121,15 @@ export function CargosProvider({ children }) {
 
     if (usingSupabase && supabase) {
       try {
-        await supabase
+        const { error: cfgErr } = await supabase
           .from('concurso_config')
           .upsert(
             { key: 'active_concurso', value: nuevoConcurso, updated_at: new Date().toISOString() },
             { onConflict: 'key' }
           );
+        if (!cfgErr) {
+          setHasRemoteConcursoConfig(true);
+        }
       } catch (e) {
         console.warn('No se pudo sincronizar concurso activo en Supabase:', e);
       }
@@ -249,17 +262,18 @@ export function CargosProvider({ children }) {
           }
 
           try {
-            const { data: cfgData } = await supabase
+            const { data: cfgData, error: cfgErr } = await supabase
               .from('concurso_config')
               .select('value')
               .eq('key', 'active_concurso')
               .maybeSingle();
-            if (cfgData?.value === 'traslado' || cfgData?.value === 'ingreso') {
+            if (!cfgErr && (cfgData?.value === 'traslado' || cfgData?.value === 'ingreso')) {
+              setHasRemoteConcursoConfig(true);
               setActiveConcursoState(cfgData.value);
               localStorage.setItem(CONCURSO_STORAGE_KEY, cfgData.value);
             }
           } catch {
-            // Si aún no existe la tabla concurso_config, continuar con valor local
+            // Si aún no existe la tabla concurso_config o falta permiso anon, continuar con inferencia desde cargos
           }
 
           subscription = supabase
@@ -277,6 +291,7 @@ export function CargosProvider({ children }) {
               (payload) => {
                 const nextVal = payload.new?.value;
                 if (payload.new?.key === 'active_concurso' && (nextVal === 'traslado' || nextVal === 'ingreso')) {
+                  setHasRemoteConcursoConfig(true);
                   setActiveConcursoState(nextVal);
                   try {
                     localStorage.setItem(CONCURSO_STORAGE_KEY, nextVal);
@@ -808,6 +823,39 @@ export function CargosProvider({ children }) {
     };
   }, [cargos]);
 
+  // Si no hay config remota accesible (ej. tabla concurso_config sin permiso anon)
+  // y el dispositivo actual no tiene selección manual de admin, inferimos el concurso activo
+  // desde el último movimiento registrado en los cargos en tiempo real.
+  const effectiveActiveConcurso = useMemo(() => {
+    if (hasRemoteConcursoConfig || hasLocalAdminOverride) {
+      return activeConcurso;
+    }
+
+    let latestTimestamp = -1;
+    let latestConcurso = null;
+    let hasAnyIngreso = false;
+
+    for (const c of cargos) {
+      if (
+        c.estado !== 'disponible' &&
+        (c.concurso_asignacion === 'traslado' || c.concurso_asignacion === 'ingreso')
+      ) {
+        if (c.concurso_asignacion === 'ingreso') {
+          hasAnyIngreso = true;
+        }
+        const ts = c.updated_at ? Date.parse(c.updated_at) : 0;
+        if (Number.isFinite(ts) && ts > latestTimestamp) {
+          latestTimestamp = ts;
+          latestConcurso = c.concurso_asignacion;
+        }
+      }
+    }
+
+    if (latestConcurso) return latestConcurso;
+    if (hasAnyIngreso) return 'ingreso';
+    return activeConcurso;
+  }, [activeConcurso, cargos, hasRemoteConcursoConfig, hasLocalAdminOverride]);
+
   const value = {
     cargos,
     loading,
@@ -819,7 +867,7 @@ export function CargosProvider({ children }) {
     isRealtimeConnected,
     usingSupabase,
     sessionUser,
-    activeConcurso,
+    activeConcurso: effectiveActiveConcurso,
     setActiveConcurso,
     updateCargo,
     undoLastAction,

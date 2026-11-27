@@ -116,10 +116,32 @@ CREATE POLICY "Permitir modificacion a administradores autenticados"
     USING (true)
     WITH CHECK (true);
 
--- Historial accesible para lectura y registro
 DROP POLICY IF EXISTS "Permitir lectura y registro de historial a autenticados" ON public.historial_cambios;
 CREATE POLICY "Permitir lectura y registro de historial a autenticados"
     ON public.historial_cambios FOR ALL
+    TO authenticated
+    USING (true)
+    WITH CHECK (true);
+
+-- 8. Tabla de configuración del concurso activo (sincronización pública en tiempo real)
+CREATE TABLE IF NOT EXISTS public.concurso_config (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.concurso_config ENABLE ROW LEVEL SECURITY;
+GRANT SELECT ON public.concurso_config TO anon;
+GRANT ALL ON public.concurso_config TO authenticated;
+
+DROP POLICY IF EXISTS "Permitir lectura publica de config" ON public.concurso_config;
+CREATE POLICY "Permitir lectura publica de config"
+    ON public.concurso_config FOR SELECT
+    USING (true);
+
+DROP POLICY IF EXISTS "Permitir modificacion de config a autenticados" ON public.concurso_config;
+CREATE POLICY "Permitir modificacion de config a autenticados"
+    ON public.concurso_config FOR ALL
     TO authenticated
     USING (true)
     WITH CHECK (true);
