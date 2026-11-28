@@ -114,10 +114,10 @@ export function PdfImportModal({ isOpen, onClose, onSaveBatch }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fadeIn">
-      <div className="relative w-full max-w-5xl bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-fadeIn">
+      <div className="relative w-full max-w-5xl bg-slate-900 border border-slate-700 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden max-h-[94vh] sm:max-h-[92vh] flex flex-col">
         {/* Cabecera */}
-        <div className="flex items-center justify-between p-5 border-b border-slate-800 bg-slate-800/50">
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-800 bg-slate-800/50">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-sky-600/20 text-sky-400 border border-sky-500/30">
               <Upload className="w-5 h-5" />

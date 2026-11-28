@@ -96,33 +96,33 @@ export function CargoDetailModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-      <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+      <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden max-h-[92vh] sm:max-h-[90vh] flex flex-col">
         {/* Cabecera */}
-        <div className="flex items-center justify-between p-5 border-b border-slate-800 bg-slate-800/40">
-          <div className="flex items-center gap-3">
-            <span className="font-mono font-black text-xl px-3 py-1 rounded-lg bg-sky-600 text-white">
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-800 bg-slate-800/40">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <span className="font-mono font-black text-lg sm:text-xl px-2.5 sm:px-3 py-1 rounded-lg bg-sky-600 text-white flex-shrink-0">
               N° {cargo.orden}
             </span>
-            <div>
-              <h2 className="text-lg font-bold text-white line-clamp-1">
+            <div className="min-w-0">
+              <h2 className="text-base sm:text-lg font-bold text-white line-clamp-1">
                 {cargo.nombre}
               </h2>
-              <span className="text-xs text-slate-400 font-medium">
+              <span className="text-xs text-slate-400 font-medium truncate block">
                 {cargo.region}
               </span>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+            className="p-2.5 sm:p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors flex-shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Contenido scrolleable */}
-        <div className="p-6 overflow-y-auto space-y-5">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-4 sm:space-y-5">
           {/* Ficha técnica */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 bg-slate-800/50 rounded-xl border border-slate-800 text-sm">
             <div>
@@ -456,6 +456,7 @@ export function CargoDetailModal({
                     <label className="text-xs text-slate-400 block mb-1">DNI (opcional)</label>
                     <input
                       type="text"
+                      inputMode="numeric"
                       placeholder="Ej. 28.450.912"
                       value={titularDni}
                       onChange={(e) => {
@@ -505,6 +506,7 @@ export function CargoDetailModal({
                       <label className="text-xs text-slate-400 block mb-1">DNI (opcional)</label>
                       <input
                         type="text"
+                        inputMode="numeric"
                         placeholder="Ej. 33.204.887"
                         value={reservaDni}
                         onChange={(e) => {
@@ -532,18 +534,18 @@ export function CargoDetailModal({
                 />
               </div>
 
-              <div className="pt-3 flex justify-end gap-2 border-t border-slate-800">
+              <div className="pt-3 flex justify-end gap-2.5 border-t border-slate-800">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2 text-sm rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                  className="flex-1 sm:flex-none px-4 py-3 sm:py-2 text-sm rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={!canSubmitOrden}
-                  className={`px-5 py-2 text-sm font-bold rounded-xl transition-colors flex items-center gap-2 shadow-lg ${
+                  className={`flex-1 sm:flex-none px-5 py-3 sm:py-2 text-sm font-bold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg ${
                     canSubmitOrden
                       ? 'bg-sky-600 hover:bg-sky-500 text-white shadow-sky-900/40'
                       : 'bg-slate-800 text-slate-500 cursor-not-allowed shadow-none'

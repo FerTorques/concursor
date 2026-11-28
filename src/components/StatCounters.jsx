@@ -40,30 +40,30 @@ export function StatCounters({ projectorMode = false }) {
 
   return (
     <div className="space-y-2.5">
-      <div className={`grid grid-cols-1 sm:grid-cols-3 gap-3 ${projectorMode ? 'text-lg' : 'text-sm'}`}>
+      <div className={`grid grid-cols-3 gap-2 sm:gap-3 ${projectorMode ? 'text-lg' : 'text-sm'}`}>
         {items.map((item) => {
           const Icon = item.icon;
           return (
             <div
               key={item.key}
-              className={`flex items-center justify-between p-3 rounded-xl border backdrop-blur-md transition-all duration-200 ${item.color} shadow-sm`}
+              className={`flex flex-col sm:flex-row sm:items-center justify-between p-2.5 sm:p-3 rounded-xl border backdrop-blur-md transition-all duration-200 ${item.color} shadow-sm gap-1 sm:gap-0`}
             >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className={`p-2 rounded-lg ${item.color} bg-opacity-30 flex-shrink-0`}>
-                  <Icon className={projectorMode ? "w-6 h-6" : "w-5 h-5"} />
+              <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+                <div className={`p-1.5 sm:p-2 rounded-lg ${item.color} bg-opacity-30 flex-shrink-0`}>
+                  <Icon className={projectorMode ? "w-6 h-6" : "w-4 h-4 sm:w-5 sm:h-5"} />
                 </div>
-                <div className="truncate">
-                  <span className={`block font-semibold tracking-wide ${projectorMode ? 'text-base font-bold' : 'text-xs text-slate-300'}`}>
+                <div className="min-w-0">
+                  <span className={`block font-semibold tracking-wide leading-tight truncate ${projectorMode ? 'text-base font-bold' : 'text-[11px] sm:text-xs text-slate-300'}`}>
                     {item.label}
                   </span>
                   {!projectorMode && (
-                    <span className="text-[11px] text-slate-400 block truncate">
+                    <span className="hidden sm:block text-[11px] text-slate-400 truncate">
                       {item.badgeText}
                     </span>
                   )}
                 </div>
               </div>
-              <span className={`font-mono font-extrabold ml-2 flex-shrink-0 ${projectorMode ? 'text-2xl' : 'text-xl'}`}>
+              <span className={`font-mono font-extrabold sm:ml-2 flex-shrink-0 ${projectorMode ? 'text-2xl' : 'text-base sm:text-xl'}`}>
                 {item.count}
               </span>
             </div>

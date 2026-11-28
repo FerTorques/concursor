@@ -33,31 +33,34 @@ export function Navbar({
         ? 'bg-slate-950/95 border-amber-500/30 py-2.5' 
         : 'bg-slate-900/90 border-slate-800 py-3'
     }`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 flex items-center justify-between gap-2.5 sm:gap-4">
         {/* Logo ACHABI en la esquina y Cabecera */}
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
           <img
             src="/logo-achabi.png"
             alt="Logo ACHABI - Asociación Chaqueña de Bibliotecarios"
-            className="w-16 h-16 rounded-full object-cover shadow-lg shadow-sky-600/30 flex-shrink-0 bg-white ring-2 ring-sky-400/40"
+            className="w-10 h-10 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-full object-cover shadow-lg shadow-sky-600/30 flex-shrink-0 bg-white ring-2 ring-sky-400/40"
           />
           <div className="min-w-0">
-            <span className="font-extrabold tracking-tight text-white text-sm sm:text-base lg:text-lg block truncate">
+            <span className="font-extrabold tracking-tight text-white text-xs sm:text-base lg:text-lg block leading-tight line-clamp-2 sm:truncate">
               ACHABI - PIZARRA DIGITAL DE CONCURSOS BIBLIOTECARIOS
             </span>
-            <p className="text-xs text-slate-300 truncate">
+            <p className="hidden sm:block text-xs text-slate-300 truncate">
               Ascensos, Traslados, Reincorporaciones e Ingreso a la Docencia
             </p>
           </div>
         </div>
 
         {/* Acciones principales */}
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
           {/* Indicador de Sincronización en Vivo (solo en Admin) */}
           {currentRoute !== '/' && (
-            <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-800/80 border border-slate-700 text-slate-300">
+            <div
+              className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 sm:py-1 rounded-full text-xs font-semibold bg-slate-800/80 border border-slate-700 text-slate-300"
+              title={usingSupabase ? 'En vivo (Supabase)' : 'En vivo (Red Local)'}
+            >
               <span className={`w-2 h-2 rounded-full ${isRealtimeConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
-              <span>
+              <span className="hidden md:inline">
                 {usingSupabase ? 'En vivo (Supabase)' : 'En vivo (Red Local)'}
               </span>
             </div>
@@ -67,15 +70,15 @@ export function Navbar({
           <button
             onClick={onToggleSound}
             title={soundEnabled ? 'Silenciar notificaciones sonoras' : 'Activar sonido'}
-            className="p-2 rounded-xl text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 transition-colors"
+            className="p-2.5 sm:p-2 rounded-xl text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 transition-colors"
           >
             {soundEnabled ? <Volume2 className="w-4 h-4 text-emerald-400" /> : <VolumeX className="w-4 h-4 text-slate-500" />}
           </button>
 
-          {/* Botón Modo Proyector */}
+          {/* Botón Modo Proyector (solo escritorio/tablet) */}
           <button
             onClick={toggleFullScreen}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all shadow-md ${
+            className={`hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all shadow-md ${
               projectorMode
                 ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/20 ring-2 ring-amber-400'
                 : 'bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700'
@@ -85,7 +88,7 @@ export function Navbar({
             {projectorMode ? (
               <>
                 <TvMinimal className="w-4 h-4" />
-                <span className="hidden sm:inline">Salir de Proyector</span>
+                <span>Salir de Proyector</span>
               </>
             ) : (
               <>
@@ -99,10 +102,11 @@ export function Navbar({
           {currentRoute !== '/' && (
             <button
               onClick={() => onNavigate && onNavigate('/')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-2 sm:px-3 sm:py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
             >
               <Radio className="w-4 h-4 text-emerald-400" />
-              <span>Pizarra Pública</span>
+              <span className="sm:hidden">Pizarra</span>
+              <span className="hidden sm:inline">Pizarra Pública</span>
             </button>
           )}
         </div>

@@ -63,6 +63,7 @@ export function AdminDashboard({ onNavigate }) {
   const searchInputRef = useRef(null);
 
   const focusSearchInput = (selectText = false) => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) return;
     setTimeout(() => {
       const input = searchInputRef.current;
       if (input) {
@@ -247,18 +248,18 @@ export function AdminDashboard({ onNavigate }) {
         </div>
       )}
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 border-b border-slate-800 pb-4 sm:pb-5">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-black bg-sky-500/20 text-sky-400 border border-sky-500/30">
+            <div className="flex items-center flex-wrap gap-2 mb-1">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-black bg-sky-500/20 text-sky-400 border border-sky-500/30">
                 MESA DE OPERACIONES EN VIVO
               </span>
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-slate-400 truncate max-w-full">
                 Sesión: <strong className="text-slate-200">{sessionUser?.email || 'Administrador'}</strong>
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
+            <h1 className="text-xl sm:text-3xl font-extrabold text-white leading-tight">
               Gestor de Vacantes y Adjudicaciones en Tiempo Real
             </h1>
             <p className="text-xs text-slate-400 mt-1">
@@ -283,7 +284,7 @@ export function AdminDashboard({ onNavigate }) {
 
             <button
               onClick={() => setShowHistoryModal(true)}
-              className="p-2 rounded-xl text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
+              className="p-2.5 sm:p-2 rounded-xl text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
               title="Ver historial de últimos movimientos"
             >
               <History className="w-4 h-4" />
@@ -291,7 +292,7 @@ export function AdminDashboard({ onNavigate }) {
 
             <button
               onClick={() => setIsPdfModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-sky-600 hover:bg-sky-500 text-white shadow-md shadow-sky-950/40 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2.5 sm:py-2 rounded-xl text-xs font-bold bg-sky-600 hover:bg-sky-500 text-white shadow-md shadow-sky-950/40 transition-colors"
             >
               <Upload className="w-4 h-4" />
               <span>Importar PDF / Normas</span>
@@ -299,7 +300,7 @@ export function AdminDashboard({ onNavigate }) {
 
             <button
               onClick={handleExportCSV}
-              className="p-2 rounded-xl text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
+              className="p-2.5 sm:p-2 rounded-xl text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
               title="Descargar Acta en CSV / Excel"
             >
               <Download className="w-4 h-4" />
@@ -307,7 +308,7 @@ export function AdminDashboard({ onNavigate }) {
 
             <button
               onClick={logoutAdmin}
-              className="p-2 rounded-xl text-rose-400 hover:text-rose-300 bg-rose-950/30 hover:bg-rose-950/60 border border-rose-800/40 transition-colors"
+              className="p-2.5 sm:p-2 rounded-xl text-rose-400 hover:text-rose-300 bg-rose-950/30 hover:bg-rose-950/60 border border-rose-800/40 transition-colors"
               title="Cerrar sesión"
             >
               <LogOut className="w-4 h-4" />
@@ -468,16 +469,15 @@ export function AdminDashboard({ onNavigate }) {
               Buscador Rápido de Cargos
             </label>
             <div className="relative">
-              <Search className="w-6 h-6 text-sky-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Search className="w-5 h-5 sm:w-6 sm:h-6 text-sky-400 absolute left-3.5 sm:left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 id="admin-cargo-search"
                 ref={searchInputRef}
                 type="text"
-                autoFocus
-                placeholder="Buscar por N° orden, biblioteca, localidad, B.P. o titular..."
+                placeholder="Buscar orden, biblioteca, localidad o B.P..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-slate-950 border-2 border-sky-500/50 rounded-2xl pl-14 pr-12 py-4 text-base sm:text-xl font-semibold text-white placeholder-slate-400 shadow-lg shadow-sky-950/30 focus:outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-500/25 transition-all"
+                className="w-full bg-slate-950 border-2 border-sky-500/50 rounded-xl sm:rounded-2xl pl-11 sm:pl-14 pr-10 sm:pr-12 py-3 sm:py-4 text-sm sm:text-xl font-semibold text-white placeholder-slate-400 shadow-lg shadow-sky-950/30 focus:outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-500/25 transition-all"
               />
               {searchTerm && (
                 <button
@@ -761,8 +761,8 @@ export function AdminDashboard({ onNavigate }) {
       />
 
       {showHistoryModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="relative w-full max-w-xl bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-6 max-h-[80vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="relative w-full max-w-xl bg-slate-900 border border-slate-700 rounded-t-2xl sm:rounded-2xl shadow-2xl p-5 sm:p-6 max-h-[85vh] sm:max-h-[80vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
               <div className="flex items-center gap-2">
                 <History className="w-5 h-5 text-amber-400" />
@@ -821,6 +821,17 @@ export function AdminDashboard({ onNavigate }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Botón flotante de Deshacer rápido en móvil */}
+      {undoStack.length > 0 && (
+        <button
+          onClick={handleUndo}
+          className="sm:hidden fixed bottom-4 right-4 z-40 flex items-center gap-2 px-4 py-3 rounded-full text-xs font-black bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-2xl shadow-amber-950/60 ring-2 ring-amber-300/60 active:scale-95 transition-transform"
+        >
+          <RotateCcw className="w-4 h-4" />
+          <span>Deshacer ({undoStack.length})</span>
+        </button>
       )}
     </div>
   );

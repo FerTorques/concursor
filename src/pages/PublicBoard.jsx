@@ -19,7 +19,8 @@ import {
   LayoutGrid,
   List,
   ArrowRightLeft,
-  GraduationCap
+  GraduationCap,
+  ArrowUp
 } from 'lucide-react';
 
 export function PublicBoard({ onNavigate }) {
@@ -28,12 +29,21 @@ export function PublicBoard({ onNavigate }) {
   // Estados de interfaz
   const [projectorMode, setProjectorMode] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [viewMode, setViewMode] = useState('table'); // 'table' | 'cards'
+  const [viewMode, setViewMode] = useState(() =>
+    typeof window !== 'undefined' && window.innerWidth < 768 ? 'cards' : 'table'
+  ); // 'table' | 'cards'
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEstado, setSelectedEstado] = useState('todos'); // 'todos' | 'disponible' | 'asignada' | 'reservada' | 'no_habilitada'
   const [selectedRegion, setSelectedRegion] = useState('todas');
   const [selectedCargo, setSelectedCargo] = useState(null);
   const [showLiveBanner, setShowLiveBanner] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setShowScrollTop(window.scrollY > 320);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Reproducir sonido cuando llega una actualización en vivo
   useEffect(() => {
@@ -106,7 +116,7 @@ export function PublicBoard({ onNavigate }) {
 
       {/* Notificación flotante de actualización en vivo */}
       {showLiveBanner && lastUpdateNotice && (
-        <div className="fixed top-20 right-4 z-50 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 p-4 rounded-2xl shadow-2xl border-2 border-yellow-200 animate-slideIn flex items-center gap-3 max-w-md">
+        <div className="fixed bottom-4 inset-x-3 sm:inset-x-auto sm:top-20 sm:right-4 sm:bottom-auto z-50 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 p-3.5 sm:p-4 rounded-2xl shadow-2xl border-2 border-yellow-200 animate-slideIn flex items-center gap-3 sm:max-w-md">
           <div className="p-2 rounded-xl bg-slate-950 text-amber-400">
             <Radio className="w-5 h-5 animate-pulse" />
           </div>
@@ -130,12 +140,12 @@ export function PublicBoard({ onNavigate }) {
       )}
 
       {/* Contenido principal */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
         {/* Cabecera del Concurso */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 border-b border-slate-800 pb-4 sm:pb-5">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                 PIZARRA PÚBLICA EN DIRECTO
               </span>
@@ -145,39 +155,39 @@ export function PublicBoard({ onNavigate }) {
                 </span>
               )}
             </div>
-            <h1 className={`font-extrabold tracking-tight text-white ${
-              projectorMode ? 'text-3xl sm:text-4xl' : 'text-2xl sm:text-3xl'
+            <h1 className={`font-extrabold tracking-tight text-white leading-tight ${
+              projectorMode ? 'text-3xl sm:text-4xl' : 'text-xl sm:text-3xl'
             }`}>
               Concurso de Traslados y Reincorporaciones N° 55 e Ingreso N° 47
             </h1>
-            <div className="mt-3">
+            <div className="mt-2.5 sm:mt-3">
               {activeConcurso === 'traslado' ? (
-                <div className={`inline-flex items-center gap-3 px-4 py-2.5 rounded-2xl border-2 bg-gradient-to-r from-sky-600/30 via-sky-500/20 to-cyan-500/20 border-sky-400 text-white shadow-lg shadow-sky-900/40 ${
-                  projectorMode ? 'text-lg sm:text-xl font-extrabold px-5 py-3' : 'text-sm sm:text-base font-extrabold'
+                <div className={`inline-flex items-center gap-2.5 sm:gap-3 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl sm:rounded-2xl border-2 bg-gradient-to-r from-sky-600/30 via-sky-500/20 to-cyan-500/20 border-sky-400 text-white shadow-lg shadow-sky-900/40 ${
+                  projectorMode ? 'text-lg sm:text-xl font-extrabold px-5 py-3' : 'text-xs sm:text-base font-extrabold'
                 }`}>
                   <span className="p-1.5 rounded-xl bg-sky-400 text-slate-950 flex-shrink-0 shadow-sm">
                     <ArrowRightLeft className={projectorMode ? 'w-5 h-5' : 'w-4 h-4'} />
                   </span>
                   <span>
-                    <span className="text-sky-300 font-black uppercase tracking-wider mr-2">CONCURSO ACTIVO:</span>
+                    <span className="text-sky-300 font-black uppercase tracking-wider mr-1.5 sm:mr-2">CONCURSO ACTIVO:</span>
                     Concurso de Traslado Definitivo (Sin reservas)
                   </span>
                 </div>
               ) : (
-                <div className={`inline-flex items-center gap-3 px-4 py-2.5 rounded-2xl border-2 bg-gradient-to-r from-purple-600/30 via-purple-500/20 to-fuchsia-500/20 border-purple-400 text-white shadow-lg shadow-purple-900/40 ${
-                  projectorMode ? 'text-lg sm:text-xl font-extrabold px-5 py-3' : 'text-sm sm:text-base font-extrabold'
+                <div className={`inline-flex items-center gap-2.5 sm:gap-3 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl sm:rounded-2xl border-2 bg-gradient-to-r from-purple-600/30 via-purple-500/20 to-fuchsia-500/20 border-purple-400 text-white shadow-lg shadow-purple-900/40 ${
+                  projectorMode ? 'text-lg sm:text-xl font-extrabold px-5 py-3' : 'text-xs sm:text-base font-extrabold'
                 }`}>
                   <span className="p-1.5 rounded-xl bg-purple-400 text-slate-950 flex-shrink-0 shadow-sm">
                     <GraduationCap className={projectorMode ? 'w-5 h-5' : 'w-4 h-4'} />
                   </span>
                   <span>
-                    <span className="text-purple-300 font-black uppercase tracking-wider mr-2">CONCURSO ACTIVO:</span>
+                    <span className="text-purple-300 font-black uppercase tracking-wider mr-1.5 sm:mr-2">CONCURSO ACTIVO:</span>
                     Concurso de Ingreso a la Docencia (Con reservas)
                   </span>
                 </div>
               )}
             </div>
-            <p className="text-sm text-slate-400 mt-2.5">
+            <p className="text-xs sm:text-sm text-slate-400 mt-2">
               Cargos Bibliotecarios • Ley 647-E • Junta de Clasificación de Bibliotecas
             </p>
           </div>
@@ -202,19 +212,19 @@ export function PublicBoard({ onNavigate }) {
         <StatCounters projectorMode={projectorMode} />
 
         {/* Barra de Filtros y Búsqueda (En modo proyector se compacta para maximizar visualización) */}
-        <div className={`p-4 rounded-2xl bg-slate-900/80 border border-slate-800 backdrop-blur-md space-y-3 ${
+        <div className={`p-3 sm:p-4 rounded-2xl bg-slate-900/80 border border-slate-800 backdrop-blur-md space-y-3 ${
           projectorMode ? 'bg-slate-900/60 py-2.5' : ''
         }`}>
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 sm:gap-3 items-center">
             {/* Buscador predictivo instantáneo */}
             <div className="md:col-span-6 relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Buscar por N° Orden, Biblioteca, Localidad, B.P. o Región..."
+                placeholder="Buscar orden, biblioteca, localidad o B.P..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className={`w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all ${
+                className={`w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-9 text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all ${
                   projectorMode ? 'py-3 text-base' : 'py-2.5 text-sm'
                 }`}
               />
@@ -457,6 +467,17 @@ export function PublicBoard({ onNavigate }) {
           </div>
         )}
       </main>
+
+      {/* Botón flotante para volver arriba en móvil */}
+      {showScrollTop && !showLiveBanner && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          aria-label="Volver arriba"
+          className="sm:hidden fixed bottom-5 right-4 z-40 p-3 rounded-full bg-sky-600 hover:bg-sky-500 text-white shadow-xl shadow-sky-950/50 border border-sky-400/50 transition-transform active:scale-95"
+        >
+          <ArrowUp className="w-5 h-5" />
+        </button>
+      )}
 
       {/* Modal de Detalle de Cargo (Solo Lectura en Vista Pública) */}
       <CargoDetailModal

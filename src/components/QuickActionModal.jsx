@@ -44,8 +44,8 @@ export function QuickActionModal({
   const targetConcurso = isAsignar ? activeConcurso : cargo.concurso_asignacion;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-      <div className={`relative w-full max-w-md bg-slate-900 border rounded-2xl shadow-2xl p-6 ${
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+      <div className={`relative w-full max-w-md bg-slate-900 border rounded-t-2xl sm:rounded-2xl shadow-2xl p-5 sm:p-6 ${
         isAsignar 
           ? (targetConcurso === 'traslado' ? 'border-sky-500/80' : 'border-amber-500/80')
           : 'border-rose-500/80'
@@ -113,6 +113,7 @@ export function QuickActionModal({
             </label>
             <input
               type="text"
+              inputMode="numeric"
               placeholder="Ej. 28.450.912"
               value={dni}
               onChange={(e) => setDni(e.target.value)}
@@ -124,13 +125,13 @@ export function QuickActionModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+              className="flex-1 sm:flex-none px-4 py-3 sm:py-2.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-lg ${
+              className={`flex-1 sm:flex-none px-5 py-3 sm:py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-lg ${
                 isAsignar
                   ? (targetConcurso === 'traslado' 
                       ? 'bg-sky-600 hover:bg-sky-500 text-white shadow-sky-950/40' 
